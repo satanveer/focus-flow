@@ -137,7 +137,7 @@ export default function SettingsPage() {
                 if (!enableNotifications) return; // respect toggle
                 if ('Notification' in window) {
                   if (Notification.permission === 'granted') {
-                    new Notification('Test FocusFlow Notification', { body: 'This is how session end alerts will look.' });
+                    new Notification('Test BobbyFlow Notification', { body: 'This is how session end alerts will look.' });
                   } else if (Notification.permission === 'default') {
                     Notification.requestPermission().then(p => { if (p === 'granted') new Notification('Permission Granted', { body: 'Notifications enabled.' }); });
                   }

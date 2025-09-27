@@ -19,14 +19,19 @@ export default function Layout() {
 
   // (Previously had a moving background indicator; removed due to visual overlap creating double "bubble" effect.)
   useEffect(() => {
-    // Could add future responsive behaviors here if needed.
+    // Update document title with current page context.
+    const active = links.find(l => (l.end ? location.pathname === l.to : location.pathname.startsWith(l.to)))?.label || '';
+    document.title = active ? `BobbyFlow • ${active}` : 'BobbyFlow';
   }, [location.pathname]);
 
   return (
     <div className="min-h-dvh flex flex-col">
       <nav className="sticky top-0 z-50 px-4 pt-4">
         <div className="relative rounded-3xl border border-[var(--border)] bg-[color:var(--bg-alt)/0.55] backdrop-blur-xl supports-[backdrop-filter]:bg-[color:var(--bg-alt)/0.5] shadow-md ring-1 ring-black/5 dark:ring-white/10">
-          <div className="flex items-center gap-1 px-4 py-2 overflow-x-auto scrollbar-none min-h-[3.25rem] [&_a]:no-underline [&_a:hover]:no-underline [&_a:visited]:no-underline" style={{position:'relative'}}>
+          <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-none min-h-[3.25rem] [&_a]:no-underline [&_a:hover]:no-underline [&_a:visited]:no-underline" style={{position:'relative'}}>
+            <div className="flex items-center pr-2 mr-1 border-r border-[var(--border)]/60 select-none">
+              <span className="text-[0.8rem] font-extrabold tracking-wider bg-gradient-to-r from-[var(--accent)] via-[var(--accent-accent2)] to-[var(--accent-accent3)] text-transparent bg-clip-text">BobbyFlow</span>
+            </div>
             {links.map((l) => (
               <NavLink
                 key={l.to}
