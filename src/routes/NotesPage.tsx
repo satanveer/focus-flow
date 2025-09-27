@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useNotes } from '../features/notes/NotesContext';
 import { useTasksContext } from '../features/tasks/TasksContext';
+import { Modal } from '../components/Modal';
 
 const FolderIcon: React.FC<{open?: boolean}> = ({open}) => <span style={{marginRight:4}}>{open? '📂':'📁'}</span>;
 
@@ -40,29 +41,94 @@ export default function NotesPage(){
     setExpanded(prev => { const n = new Set(prev); n.has(id)? n.delete(id): n.add(id); return n; });
   }
 
-  function handleCreateFolder(parentId: string | null){
-    const name = prompt('Folder name?');
-    if(!name) return;
-    createFolder(name, parentId);
-  }
+  // Modal dialog state machine
+  type DialogKind = null | { type:'create-folder'; parentId: string | null } | { type:'rename-folder'; id:string } | { type:'delete-folder'; id:string } | { type:'folder-not-empty' } | { type:'create-note' } | { type:'delete-note'; id:string };
+  const [dialog, setDialog] = useState<DialogKind>(null);
+  const [tempName, setTempName] = useState('');
 
-  function handleRenameFolder(id: string){
+  function openCreateFolder(parentId: string | null){
+    setTempName('');
+    setDialog({ type:'create-folder', parentId });
+  }
+  function openRenameFolder(id: string){
     const f = folders.find(f=> f.id===id); if(!f) return;
-    const name = prompt('Rename folder', f.name); if(!name) return;
-    renameFolder(id, name);
+    setTempName(f.name);
+    setDialog({ type:'rename-folder', id });
+  }
+  function confirmDeleteFolder(id: string){
+    setDialog({ type:'delete-folder', id });
+  }
+  function openCreateNote(){
+    setTempName('');
+    setDialog({ type:'create-note' });
+  }
+  function confirmDeleteNote(id: string){
+    setDialog({ type:'delete-note', id });
   }
 
-  function handleDeleteFolder(id: string){
-    const ok = confirm('Delete folder? Must be empty.');
-    if(!ok) return;
-    const success = deleteFolder(id);
-    if(!success) alert('Folder not empty. Move or delete its contents first.');
+  function submitDialog(){
+    if(!dialog) return;
+    switch(dialog.type){
+      case 'create-folder': {
+        if(!tempName.trim()) return;
+        createFolder(tempName.trim(), dialog.parentId);
+        break;
+      }
+      case 'rename-folder': {
+        if(!tempName.trim()) return;
+        renameFolder(dialog.id, tempName.trim());
+        break;
+      }
+      case 'delete-folder': {
+        const success = deleteFolder(dialog.id);
+        if(!success) {
+          setDialog({ type:'folder-not-empty' });
+          return; // do not close
+        }
+        break;
+      }
+      case 'create-note': {
+        const title = tempName.trim() || 'Untitled';
+        const n = createNote(title, activeFolder, '');
+        setActiveNoteId(n.id);
+        break;
+      }
+      case 'delete-note': {
+        deleteNote(dialog.id);
+        if(activeNoteId === dialog.id) setActiveNoteId(null);
+        break;
+      }
+      case 'folder-not-empty': {
+        break; // just informational
+      }
+    }
+    setDialog(null);
+    setTempName('');
   }
 
-  function handleCreateNote(){
-    const title = prompt('Note title?') || 'Untitled';
-    const n = createNote(title, activeFolder, '');
-    setActiveNoteId(n.id);
+  function dialogTitle(){
+    if(!dialog) return '';
+    switch(dialog.type){
+      case 'create-folder': return 'New Folder';
+      case 'rename-folder': return 'Rename Folder';
+      case 'delete-folder': return 'Delete Folder';
+      case 'folder-not-empty': return 'Cannot Delete Folder';
+      case 'create-note': return 'New Note';
+      case 'delete-note': return 'Delete Note';
+      default: return '';
+    }
+  }
+  function dialogDescription(){
+    if(!dialog) return '';
+    switch(dialog.type){
+      case 'create-folder': return 'Enter a name for the folder.';
+      case 'rename-folder': return 'Update the folder name.';
+      case 'delete-folder': return 'Are you sure? Folder must be empty.';
+      case 'folder-not-empty': return 'This folder still has nested folders or notes. Move or delete them first.';
+      case 'create-note': return 'Enter a title for the note.';
+      case 'delete-note': return 'This action cannot be undone.';
+      default: return '';
+    }
   }
 
   function handleTaskLink(noteId: string, taskId: string){
@@ -85,9 +151,9 @@ export default function NotesPage(){
         <div className="ff-row" style={{alignItems:'center', gap:4, justifyContent:'space-between'}}>
           <button aria-expanded={isOpen} onClick={()=> toggleFolder(id)} className="btn subtle" style={{fontSize:'.55rem', flex:1, justifyContent:'flex-start'}}><FolderIcon open={isOpen}/> {folder.name} <span style={{marginLeft:'auto', fontSize:'.45rem', background:'var(--surface)', border:'1px solid var(--border)', padding:'0 .35rem', borderRadius:999}}>{totalNotes}</span></button>
           <div className="ff-row" style={{gap:2}}>
-            <button className="btn outline" style={{fontSize:'.5rem'}} onClick={()=> handleCreateFolder(id)} aria-label="Add subfolder">＋</button>
-            <button className="btn outline" style={{fontSize:'.5rem'}} onClick={()=> handleRenameFolder(id)} aria-label="Rename folder">✎</button>
-            <button className="btn outline" style={{fontSize:'.5rem'}} onClick={()=> handleDeleteFolder(id)} aria-label="Delete folder">🗑</button>
+            <button className="btn outline" style={{fontSize:'.5rem'}} onClick={()=> openCreateFolder(id)} aria-label="Add subfolder">＋</button>
+            <button className="btn outline" style={{fontSize:'.5rem'}} onClick={()=> openRenameFolder(id)} aria-label="Rename folder">✎</button>
+            <button className="btn outline" style={{fontSize:'.5rem'}} onClick={()=> confirmDeleteFolder(id)} aria-label="Delete folder">🗑</button>
           </div>
         </div>
         {isOpen && (
@@ -149,6 +215,7 @@ export default function NotesPage(){
   const isNarrow = typeof window !== 'undefined' && window.innerWidth < 800; // coarse check
 
   return (
+    <>
     <div className="ff-row" style={{alignItems:'stretch', gap:0, position:'relative', height:'calc(100dvh - 130px)'}} aria-label="Notes workspace">
       {/* Mobile pane switcher */}
       {isNarrow && (
@@ -176,7 +243,7 @@ export default function NotesPage(){
         flexDirection:'column', borderRight: isNarrow? 'none':'1px solid var(--border)', background:'var(--surface)', backdropFilter:'blur(6px)'}} aria-label="Folders panel">
         <div style={{padding:'.6rem .75rem', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--border)'}}>
           <h2 style={{fontSize:'.65rem', letterSpacing:'.15em', textTransform:'uppercase', margin:0}}>Folders</h2>
-          <button className="btn primary" style={{fontSize:'.55rem'}} onClick={()=> handleCreateFolder(null)}>＋</button>
+          <button className="btn primary" style={{fontSize:'.55rem'}} onClick={()=> openCreateFolder(null)}>＋</button>
         </div>
         <div style={{padding:'.5rem .6rem', borderBottom:'1px solid var(--border)'}}>
           <input placeholder="Search..." value={search} onChange={e=> setSearch(e.target.value)} aria-label="Search notes" style={{width:'100%', fontSize:'.55rem', padding:'.4rem .55rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--bg-alt)'}} />
@@ -223,7 +290,7 @@ export default function NotesPage(){
               {tasks.map(t=> <option key={t.id} value={t.id}>{t.title}</option>)}
             </select>
           </div>
-          <button className="btn primary" style={{fontSize:'.55rem'}} onClick={handleCreateNote}>New</button>
+          <button className="btn primary" style={{fontSize:'.55rem'}} onClick={openCreateNote}>New</button>
         </div>
         <div style={{flex:1, overflowY:'auto'}}>
           {notesInFolder.length===0 && <div style={{padding:'.75rem', fontSize:'.55rem', color:'var(--text-muted)'}}>No notes match.</div>}
@@ -281,7 +348,7 @@ export default function NotesPage(){
                 <option value="">(Root)</option>
                 {folders.map(f=> <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
-              <button className="btn danger" style={{fontSize:'.55rem'}} onClick={()=> { if(confirm('Delete note?')) { deleteNote(activeNote.id); setActiveNoteId(null);} }}>Delete</button>
+              <button className="btn danger" style={{fontSize:'.55rem'}} onClick={()=> confirmDeleteNote(activeNote.id)}>Delete</button>
             </div>
             {/* Reflection history */}
             {(() => {
@@ -312,6 +379,40 @@ export default function NotesPage(){
           </div>
         )}
       </section>
-    </div>
+      </div>
+      <Modal
+        open={!!dialog}
+        title={dialogTitle()}
+        description={dialogDescription()}
+        onClose={()=> { setDialog(null); setTempName(''); }}
+        actions={dialog && dialog.type==='folder-not-empty' ? (
+          <button className="btn primary" style={{fontSize:'.6rem'}} onClick={()=> setDialog(null)}>Close</button>
+        ) : dialog && ['create-folder','rename-folder','create-note'].includes(dialog.type) ? (
+          <>
+            <button className="btn subtle" style={{fontSize:'.6rem'}} onClick={()=> { setDialog(null); setTempName(''); }}>Cancel</button>
+            <button className="btn primary" style={{fontSize:'.6rem'}} onClick={submitDialog}>{dialog.type==='create-note'? 'Create':'Save'}</button>
+          </>
+        ) : dialog && ['delete-folder','delete-note'].includes(dialog.type) ? (
+          <>
+            <button className="btn subtle" style={{fontSize:'.6rem'}} onClick={()=> setDialog(null)}>Cancel</button>
+            <button className="btn danger" style={{fontSize:'.6rem'}} onClick={submitDialog}>Delete</button>
+          </>
+        ) : undefined}
+      >
+        {dialog && ['create-folder','rename-folder','create-note'].includes(dialog.type) && (
+          <input
+            autoFocus
+            value={tempName}
+            placeholder={dialog.type==='create-note'? 'Note title':'Folder name'}
+            onChange={e=> setTempName(e.target.value)}
+            onKeyDown={e=> { if(e.key==='Enter'){ submitDialog(); } }}
+            style={{width:'100%', fontSize:'.7rem', padding:'.55rem .65rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--bg-alt)'}}
+          />
+        )}
+        {dialog && dialog.type==='delete-note' && <div style={{fontSize:'.6rem'}}>Delete this note permanently?</div>}
+        {dialog && dialog.type==='delete-folder' && <div style={{fontSize:'.6rem'}}>This will delete the folder if empty.</div>}
+        {dialog && dialog.type==='folder-not-empty' && <div style={{fontSize:'.6rem'}}>Move or delete the contents first.</div>}
+      </Modal>
+    </>
   );
 }

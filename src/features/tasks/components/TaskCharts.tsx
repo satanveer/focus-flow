@@ -37,6 +37,7 @@ function formatDateDay(dateISO: string) {
 export const TaskCharts: React.FC = () => {
   const { tasks } = useTasksContext();
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   useEffect(()=> {
     const mq = window.matchMedia('(max-width: 780px)');
     const handler = () => setIsMobile(mq.matches);
@@ -170,7 +171,7 @@ export const TaskCharts: React.FC = () => {
             </div>
           </div>
         </div>
-        {!isMobile && (
+        {(!isMobile) || (isMobile && mobileExpanded) ? (
           <>
           {/* Priority Bar */}
           <div className="ff-stack" style={CHART_BLOCK_STYLE} role="figure" aria-label="Tasks count grouped by priority bar chart">
@@ -277,8 +278,21 @@ export const TaskCharts: React.FC = () => {
             </div>
           </div>
           </>
-        )}
+        ) : null}
       </div>
+      {isMobile && (
+        <div style={{display:'flex', justifyContent:'center', marginTop:'.25rem'}}>
+          <button
+            className="btn outline"
+            style={{fontSize:'.6rem', padding:'.45rem .9rem'}}
+            onClick={()=> setMobileExpanded(e=> !e)}
+            aria-expanded={mobileExpanded}
+            aria-controls="task-extra-charts"
+          >
+            {mobileExpanded ? 'Show Less' : 'Show More'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
