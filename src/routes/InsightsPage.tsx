@@ -285,31 +285,35 @@ export default function InsightsPage() {
       <section className="card ff-stack" style={{padding:'1rem', gap:'.6rem'}}>
         <h2 style={{fontSize:'.85rem', margin:0}}>Sessions ({exportRows.length})</h2>
         <div style={{overflowX:'auto'}}>
-          <table style={{width:'100%', borderCollapse:'collapse', fontSize:'.55rem'}}>
+          <table style={{width:'100%', borderCollapse:'collapse', fontSize:'.55rem'}} className="sessions-table">
             <thead>
               <tr style={{textAlign:'left'}}>
-                <th>ID</th>
-                <th>Mode</th>
-                <th>Started</th>
-                <th>Ended</th>
-                <th>Min</th>
-                <th>Task</th>
+                <th style={{padding:'.35rem .45rem'}}>Mode</th>
+                <th style={{padding:'.35rem .45rem'}}>Started</th>
+                <th style={{padding:'.35rem .45rem'}}>Ended</th>
+                <th style={{padding:'.35rem .45rem'}}>Minutes</th>
               </tr>
             </thead>
             <tbody>
-              {exportRows.slice().reverse().slice(0,range==='daily'? 50: 100).map(r => (
-                <tr key={r.id} style={{borderTop:'1px solid var(--border)'}}>
-                  <td style={{padding:'.25rem .4rem', whiteSpace:'nowrap'}}>{r.id.slice(0,6)}</td>
-                  <td style={{padding:'.25rem .4rem'}}>{r.mode}</td>
-                  <td style={{padding:'.25rem .4rem', whiteSpace:'nowrap'}}>{new Date(r.startedAt).toLocaleString(undefined,{hour:'2-digit', minute:'2-digit', month:'short', day:'numeric'})}</td>
-                  <td style={{padding:'.25rem .4rem', whiteSpace:'nowrap'}}>{r.endedAt ? new Date(r.endedAt).toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'}) : ''}</td>
-                  <td style={{padding:'.25rem .4rem'}}>{r.durationMin}</td>
-                  <td style={{padding:'.25rem .4rem'}}>{r.taskId ? r.taskId.slice(0,6) : ''}</td>
-                </tr>
-              ))}
+              {exportRows.slice().reverse().slice(0,range==='daily'? 50: 100).map((r,i) => {
+                const modeColor = r.mode==='focus' ? 'var(--accent)' : r.mode==='shortBreak' ? 'var(--info)' : 'var(--warning)';
+                const minutesColor = r.mode==='focus' ? 'var(--accent-accent3)' : r.mode==='shortBreak' ? 'var(--info)' : 'var(--warning)';
+                return (
+                  <tr key={r.id} style={{borderTop:'1px solid var(--border)', background: i % 2 ? 'var(--surface)' : 'var(--surface-elev)'}}>
+                    <td style={{padding:'.3rem .45rem'}}>
+                      <span style={{display:'inline-block', padding:'.25rem .5rem', borderRadius:999, background:modeColor, color:'var(--accent-foreground)', fontSize:'.5rem', fontWeight:600, letterSpacing:'.05em'}}>
+                        {r.mode==='focus' ? 'FOCUS' : r.mode==='shortBreak' ? 'SHORT' : 'LONG'}
+                      </span>
+                    </td>
+                    <td style={{padding:'.3rem .45rem', whiteSpace:'nowrap'}}>{new Date(r.startedAt).toLocaleString(undefined,{hour:'2-digit', minute:'2-digit', month:'short', day:'numeric'})}</td>
+                    <td style={{padding:'.3rem .45rem', whiteSpace:'nowrap'}}>{r.endedAt ? new Date(r.endedAt).toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'}) : ''}</td>
+                    <td style={{padding:'.3rem .45rem', fontWeight:600, color: minutesColor}}>{r.durationMin}</td>
+                  </tr>
+                );
+              })}
               {exportRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{padding:'.5rem', textAlign:'center', color:'var(--text-muted)'}}>No sessions recorded.</td>
+                  <td colSpan={4} style={{padding:'.5rem', textAlign:'center', color:'var(--text-muted)'}}>No sessions recorded.</td>
                 </tr>
               )}
             </tbody>

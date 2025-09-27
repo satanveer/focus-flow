@@ -272,25 +272,34 @@ export default function TimerPage() {
           )}
         </div>
         {/* Configuration controls moved to Settings page */}
-        <div className="card" style={{width:'100%', maxWidth:620, padding:'1rem 1rem 1.25rem', background:'var(--surface-1)', border:'1px solid var(--border)', boxShadow:'0 2px 4px -2px rgba(0,0,0,.4), 0 4px 12px -2px rgba(0,0,0,.25)'}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'.75rem'}}>
+        <div className="card" style={{width:'100%', maxWidth:620, padding:'1.1rem 1.2rem 1.35rem', background:'var(--surface-1)', border:'1px solid var(--border)', boxShadow:'0 2px 4px -2px rgba(0,0,0,.4), 0 4px 12px -2px rgba(0,0,0,.25)'}}>
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'.35rem', marginBottom:'.85rem', textAlign:'center'}}>
             <h3 style={{margin:0, fontSize:'.7rem', letterSpacing:'.12em', textTransform:'uppercase', color:'var(--text-muted)'}}>Custom Focus Session</h3>
             <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>
               {(() => { const raw=Number(customInputRef.current?.value||0); if(!raw) return 'Pick a duration'; const end=new Date(Date.now()+raw*60000); return 'Ends ~ '+end.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); })()}
             </span>
           </div>
-          <div style={{display:'flex', gap:'1rem', flexWrap:'wrap', alignItems:'flex-start'}}>
-            <div style={{display:'flex', flexDirection:'column', gap:'.4rem'}}>
-              <div style={{display:'flex', alignItems:'center', gap:'.4rem'}}>
-                <button type="button" className="btn subtle" style={{fontSize:'.6rem', padding:'.2rem .55rem'}} disabled={!!active} onClick={() => { const cur=Number(customInputRef.current?.value||0); if(cur>1 && customInputRef.current) customInputRef.current.value=String(cur-1); }}>-</button>
-                <input ref={customInputRef} placeholder="mins" type="number" min={1} style={{width:'4.5rem', textAlign:'center'}} disabled={!!active && false} onKeyDown={e=>{ if(e.key==='Enter'){ const val=Number((e.target as HTMLInputElement).value); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); } }} />
-                <button type="button" className="btn subtle" style={{fontSize:'.6rem', padding:'.2rem .55rem'}} disabled={!!active} onClick={() => { const cur=Number(customInputRef.current?.value||0); const next=cur?cur+1:1; if(customInputRef.current) customInputRef.current.value=String(next); }}>+</button>
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'.9rem'}}>
+            <div style={{display:'flex', flexDirection:'column', gap:'.5rem', alignItems:'center'}}>
+              <div style={{display:'flex', alignItems:'center', gap:'.5rem'}}>
+                <button type="button" className="btn subtle" style={{fontSize:'.6rem', padding:'.25rem .6rem'}} disabled={!!active} onClick={() => { const cur=Number(customInputRef.current?.value||0); if(cur>1 && customInputRef.current) customInputRef.current.value=String(cur-1); }}>-</button>
+                <input
+                  ref={customInputRef}
+                  placeholder="mins"
+                  type="number"
+                  min={1}
+                  className="focus-mins-input"
+                  style={{width:'5rem', textAlign:'center', fontSize:'.7rem', padding:'.4rem .5rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)', WebkitAppearance:'none'}}
+                  disabled={!!active && false}
+                  onKeyDown={e=>{ if(e.key==='Enter'){ const val=Number((e.target as HTMLInputElement).value); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); } }}
+                />
+                <button type="button" className="btn subtle" style={{fontSize:'.6rem', padding:'.25rem .6rem'}} disabled={!!active} onClick={() => { const cur=Number(customInputRef.current?.value||0); const next=cur?cur+1:1; if(customInputRef.current) customInputRef.current.value=String(next); }}>+</button>
                 <button type="button" className="btn primary" style={{fontSize:'.6rem'}} disabled={!!active} onClick={()=>{ const val=Number(customInputRef.current?.value||0); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); }}>Start</button>
               </div>
               <div style={{fontSize:'.5rem', color:'var(--text-muted)', textAlign:'center'}}>Enter minutes or use presets</div>
             </div>
-            <div style={{flexGrow:1, minWidth:240}}>
-              <div style={{display:'flex', flexWrap:'wrap', gap:'.4rem'}}>
+            <div style={{width:'100%', display:'flex', justifyContent:'center'}}>
+              <div style={{display:'flex', flexWrap:'wrap', gap:'.45rem', justifyContent:'center', maxWidth:540}}>
                 {[5,10,15,20,25,30,35,40,45,50,55,60].map(p => {
                   const activePreset = selectedPreset === p && !active;
                   return (
@@ -299,7 +308,7 @@ export default function TimerPage() {
                       type="button"
                       disabled={!!active}
                       className={`btn ${activePreset ? 'primary' : 'subtle'}`}
-                      style={{fontSize:'.55rem', padding:'.3rem .55rem'}}
+                      style={{fontSize:'.55rem', padding:'.35rem .6rem'}}
                       onClick={()=>{ if(customInputRef.current) customInputRef.current.value=String(p); setSelectedPreset(p); start({mode:'focus', taskId:selectedTaskId, durationSec:p*60}); }}
                     >{p}m</button>
                   );
@@ -318,21 +327,24 @@ export default function TimerPage() {
               .reduce((a: number,b: any)=> a + b.durationSec,0)/60)}m
           </span>
         </header>
-        <ul className="ff-stack" style={{listStyle:'none', margin:0, padding:0, gap:'.35rem', maxHeight:'12rem', overflowY:'auto'}}>
-          {sessions.slice().reverse().slice(0,25).map((s: any) => {
+        <ul className="ff-stack" style={{listStyle:'none', margin:0, padding:0, gap:0, maxHeight:'12rem', overflowY:'auto', border:'1px solid var(--border)', borderRadius:8}}>
+          {sessions.slice().reverse().slice(0,25).map((s: any, i: number) => {
             const task = tasks.find(t=> t.id===s.taskId);
             const durMin = Math.round(s.durationSec/60);
-            const label = s.mode==='focus' ? 'Focus' : s.mode==='shortBreak' ? 'Short' : 'Long';
+            const mode = s.mode;
+            const label = mode==='focus' ? 'FOCUS' : mode==='shortBreak' ? 'SHORT' : 'LONG';
+            const modeColor = mode==='focus' ? 'var(--accent)' : mode==='shortBreak' ? 'var(--info)' : 'var(--warning)';
+            const minutesColor = mode==='focus' ? 'var(--accent-accent3)' : mode==='shortBreak' ? 'var(--info)' : 'var(--warning)';
             return (
-              <li key={s.id} style={{display:'flex', alignItems:'center', gap:'.5rem', fontSize:'.55rem'}}>
-                <span style={{padding:'.15rem .45rem', borderRadius:4, background:'var(--surface-2)', color:'var(--text-secondary)'}}>{label}</span>
-                <span style={{color:'var(--text-primary)'}}>{durMin}m</span>
+              <li key={s.id} style={{display:'flex', alignItems:'center', gap:'.6rem', fontSize:'.55rem', padding:'.35rem .55rem', background: i % 2 ? 'var(--surface)' : 'var(--surface-elev)'}}>
+                <span style={{padding:'.2rem .55rem', borderRadius:999, background:modeColor, color:'var(--accent-foreground)', fontWeight:600, letterSpacing:'.05em'}}>{label}</span>
+                <span style={{color: minutesColor, fontWeight:600}}>{durMin}m</span>
                 {task && <span style={{color:'var(--text-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'10rem'}}>• {task.title}</span>}
                 <span style={{marginLeft:'auto', color:'var(--text-muted)'}}>{new Date(s.startedAt).toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'})}</span>
               </li>
             );
           })}
-          {sessions.length===0 && <li style={{fontSize:'.55rem', color:'var(--text-muted)'}}>No sessions yet.</li>}
+          {sessions.length===0 && <li style={{fontSize:'.55rem', color:'var(--text-muted)', padding:'.6rem', textAlign:'center'}}>No sessions yet.</li>}
         </ul>
       </section>
       {pendingReflection && (

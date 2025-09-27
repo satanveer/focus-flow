@@ -148,3 +148,20 @@ html.dark [tabindex]:focus-visible::after {
 *::-webkit-scrollbar-track { background: var(--bg-alt); }
 *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
 *::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Glowing placeholder for custom focus minutes input */
+.focus-mins-input::placeholder {
+	color: var(--accent-accent3);
+	text-align: center;
+	font-weight: 600;
+	letter-spacing: .05em;
+	text-transform: uppercase;
+	filter: drop-shadow(0 0 4px var(--accent-accent3));
+}
+
+html.dark .focus-mins-input::placeholder {
+	color: var(--accent-accent3);
+	filter: drop-shadow(0 0 6px var(--accent-accent3));
+}
+
+.focus-mins-input:focus::placeholder { opacity: .35; filter: none; transition: opacity .25s ease; }
