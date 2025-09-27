@@ -3,6 +3,7 @@ import { usePomodoro } from '../features/pomodoro/PomodoroContext';
 import FocusGoalBar from '../features/pomodoro/components/FocusGoalBar';
 import { useTasksContext } from '../features/tasks/TasksContext';
 import { useSearchParams } from 'react-router-dom';
+import { useNotes } from '../features/notes/NotesContext';
 
 function format(seconds: number) {
   const m = Math.floor(seconds / 60).toString().padStart(2,'0');
@@ -13,10 +14,34 @@ function format(seconds: number) {
 export default function TimerPage() {
   const { start, pause, resume, abort, complete, active, getRemaining, focusDurations, sessions, focusCycleCount, longBreakEvery } = usePomodoro() as any;
   const { tasks } = useTasksContext();
+  const { notes, createNote, updateNote } = useNotes();
+  // Reflection prompt state
+  const [pendingReflection, setPendingReflection] = useState<{taskId: string; sessionId: string} | null>(null);
+  const seenSessionIdsRef = useRef<Set<string>>(new Set());
+  const initialLoadRef = useRef(true);
+
+  // Only prompt for newly completed focus sessions with a task AFTER initial mount.
+  useEffect(()=> {
+    if(initialLoadRef.current){
+      // Mark all existing sessions as already seen to suppress prompt on page navigation.
+  sessions.forEach((s: any) => seenSessionIdsRef.current.add(s.id));
+      initialLoadRef.current = false;
+      return;
+    }
+    if(!sessions.length) return;
+    const newest = sessions[sessions.length - 1];
+    if(seenSessionIdsRef.current.has(newest.id)) return;
+    seenSessionIdsRef.current.add(newest.id);
+    if(newest.mode==='focus' && newest.taskId){
+      setPendingReflection({taskId: newest.taskId, sessionId: newest.id});
+    }
+  }, [sessions]);
   const [remaining, setRemaining] = useState(getRemaining());
   const [params] = useSearchParams();
   const taskIdParam = params.get('taskId') || undefined;
   const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(taskIdParam);
+  const [showNotesPanel, setShowNotesPanel] = useState(false);
+  const [panelNoteId, setPanelNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setRemaining(getRemaining()), 500);
@@ -94,8 +119,35 @@ export default function TimerPage() {
     }
   }, [active]);
 
+  // Determine current task for note binding (active takes precedence else selected)
+  const currentTaskId = active?.taskId || selectedTaskId;
+  const existingNote = useMemo(()=> currentTaskId ? notes.find(n=> n.taskId===currentTaskId) : undefined, [notes, currentTaskId]);
+
+  // Ensure note exists when opening panel
+  useEffect(()=> {
+    if(showNotesPanel && currentTaskId){
+      if(!existingNote){
+        const task = tasks.find(t=> t.id===currentTaskId);
+        if(task){
+          const newN = createNote(task.title, null, '', currentTaskId);
+          setPanelNoteId(newN.id);
+        }
+      } else {
+        setPanelNoteId(existingNote.id);
+      }
+    }
+  }, [showNotesPanel, currentTaskId, existingNote, createNote, tasks]);
+
+  // Persist panel state across task switches (keep open) and after session end.
+  useEffect(()=> {
+    if(!currentTaskId){
+      // if no task selected keep panel but blank
+      setPanelNoteId(existingNote? existingNote.id : null);
+    }
+  }, [currentTaskId, existingNote]);
+
   return (
-  <div className="ff-stack" style={{gap:'1.5rem'}}>
+  <div className="ff-stack" style={{gap:'1.5rem', position:'relative'}}>
       <FocusGoalBar />
       <header className="ff-stack" style={{gap:'.25rem'}}>
         <h1 style={{fontSize:'1.3rem', fontWeight:600}}>Pomodoro</h1>
@@ -119,6 +171,9 @@ export default function TimerPage() {
           {selectedTaskId && (
             <button type="button" className="btn subtle" onClick={() => setSelectedTaskId(undefined)} style={{fontSize:'.6rem'}}>Clear</button>
           )}
+          <button type="button" className="btn outline" style={{fontSize:'.6rem'}} onClick={()=> setShowNotesPanel(s=> !s)} aria-expanded={showNotesPanel} aria-controls="timer-notes-panel">
+            {showNotesPanel? 'Hide Notes' : 'Show Notes'}
+          </button>
         </div>
         <div style={{display:'flex', gap:'.5rem'}} aria-label="Mode selector">
           {(['focus','shortBreak','longBreak'] as const).map(m => (
@@ -280,6 +335,96 @@ export default function TimerPage() {
           {sessions.length===0 && <li style={{fontSize:'.55rem', color:'var(--text-muted)'}}>No sessions yet.</li>}
         </ul>
       </section>
+      {pendingReflection && (
+        <div style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center'}} role="dialog" aria-modal="true" aria-label="Session reflection">
+          <div onMouseDown={e=> { if(e.target===e.currentTarget) setPendingReflection(null); }} style={{position:'absolute', inset:0, backdropFilter:'blur(2px)', background:'rgba(0,0,0,.35)'}} />
+          <div className="card ff-stack" style={{position:'relative', width:'min(420px, 92vw)', padding:'1rem 1rem 1.25rem', gap:'.75rem', boxShadow:'0 10px 40px -6px rgba(0,0,0,.55)'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <strong style={{fontSize:'.75rem', letterSpacing:'.1em'}}>SESSION REFLECTION</strong>
+              <button className="btn subtle" style={{fontSize:'.55rem'}} onClick={()=> setPendingReflection(null)} aria-label="Dismiss reflection">✕</button>
+            </div>
+            <p style={{fontSize:'.65rem', lineHeight:1.4, margin:0}}>How did that focus session go?</p>
+            <div className="ff-stack" style={{gap:'.5rem'}}>
+              {['Great focus','Some distractions','Unfocused'].map(label => (
+                <button
+                  key={label}
+                  className="btn outline"
+                  style={{justifyContent:'flex-start', fontSize:'.6rem'}}
+                  onClick={()=> {
+                    if(pendingReflection?.taskId){
+                      let note = notes.find(n=> n.taskId===pendingReflection.taskId);
+                      if(!note){
+                        const task = tasks.find(t=> t.id===pendingReflection.taskId);
+                        if(task){ note = createNote(task.title, null, '', pendingReflection.taskId); }
+                      }
+                      if(note){
+                        const now = new Date();
+                        const datePart = now.toLocaleDateString(undefined,{year:'numeric', month:'short', day:'numeric'});
+                        const timePart = now.toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'});
+                        const emoji = label === 'Great focus' ? '🟢' : label === 'Some distractions' ? '🟡' : '🔴';
+                        // New concise reflection line (EASY PARSE MARKER at start)
+                        const line = `${emoji} ${label} — ${datePart} ${timePart}`;
+                        const addition = (note.body.endsWith('\n') || note.body==='') ? line : `\n${line}`;
+                        updateNote(note.id, { body: note.body + addition });
+                      }
+                    }
+                    setPendingReflection(null);
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end'}}>
+              <button className="btn subtle" style={{fontSize:'.55rem'}} onClick={()=> setPendingReflection(null)}>Skip</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showNotesPanel && (
+        <aside
+          id="timer-notes-panel"
+          className="card ff-stack"
+          style={{position:'fixed', top:'4rem', right:'1rem', width:'min(380px, 90vw)', height:'min(70vh, 600px)', zIndex:900, padding:'.85rem .9rem 1rem', gap:'.55rem', boxShadow:'0 8px 28px -6px rgba(0,0,0,.55), 0 2px 10px -2px rgba(0,0,0,.5)', display:'flex'}}
+          aria-label="Task notes panel"
+          role="complementary"
+        >
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <strong style={{fontSize:'.65rem', letterSpacing:'.1em'}}>NOTES</strong>
+            <button className="btn subtle" style={{fontSize:'.55rem'}} onClick={()=> setShowNotesPanel(false)} aria-label="Close notes panel">✕</button>
+          </div>
+          {currentTaskId ? (
+            panelNoteId ? (
+              (()=> {
+                const note = notes.find(n=> n.id===panelNoteId);
+                if(!note) return <div style={{fontSize:'.55rem'}}>Loading note...</div>;
+                return (
+                  <div className="ff-stack" style={{gap:'.4rem', flexGrow:1}}>
+                    <input
+                      value={note.title}
+                      onChange={e=> updateNote(note.id,{title:e.target.value})}
+                      aria-label="Note title"
+                      style={{fontSize:'.7rem', fontWeight:600, padding:'.35rem .45rem', border:'1px solid var(--border)', borderRadius:4, background:'var(--surface-1)'}}
+                    />
+                    <textarea
+                      value={note.body}
+                      onChange={e=> updateNote(note.id,{body:e.target.value})}
+                      aria-label="Note body"
+                      style={{flexGrow:1, resize:'vertical', minHeight:'8rem', fontSize:'.65rem', lineHeight:1.4, fontFamily:'inherit'}}
+                      placeholder="Write your notes for this task..."
+                    />
+                  </div>
+                );
+              })()
+            ) : (
+              <div style={{fontSize:'.55rem'}}>Preparing note...</div>
+            )
+          ) : (
+            <div style={{fontSize:'.55rem', color:'var(--text-muted)'}}>Select a task to attach a note.</div>
+          )}
+          {!currentTaskId && (
+            <div style={{fontSize:'.5rem', color:'var(--text-muted)'}}>Use the task selector above to choose a task for notes.</div>
+          )}
+        </aside>
+      )}
   <div ref={announcerRef} aria-live="polite" style={{position:'absolute', width:0, height:0, overflow:'hidden'}} />
       {/* Local keyframes for pulse (scoped via style tag) */}
       <style>{`@keyframes ff-pulse { 0%,100% { transform: scale(1); filter:brightness(1);} 50% { transform: scale(1.05); filter:brightness(1.25);} }`}</style>

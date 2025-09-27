@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { Task } from '../../../domain/models';
 import { useTasksContext } from '../TasksContext';
 import { usePomodoro } from '../../pomodoro/PomodoroContext';
 import { Link } from 'react-router-dom';
+import { useNotes } from '../../notes/NotesContext';
 
 function tagColor(tag: string) {
   // Simple hash to h(0-359)
@@ -28,12 +30,54 @@ function dueInfo(task: Task) {
 export const TaskItem: React.FC<Props> = ({ task }) => {
   const { toggleTask, removeTask } = useTasksContext();
   const { sessions } = usePomodoro();
+  const { createNote, notes, updateNote } = useNotes();
+  const [showNote, setShowNote] = useState(false);
+  const popRef = useRef<HTMLDivElement|null>(null);
+  const existingLinked = notes.find(n => n.taskId === task.id);
+  const anchorRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
 
   const focusSessions = useMemo(() => sessions.filter(s => s.taskId === task.id && s.mode==='focus' && s.endedAt).sort((a,b)=> new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()), [sessions, task.id]);
   const totalMinutes = useMemo(()=> Math.round(focusSessions.reduce((a,b)=> a + b.durationSec, 0)/60), [focusSessions]);
+  // Centered modal behaviors: esc close, focus trap, body scroll lock, focus restore
+  useEffect(()=> {
+    if(!showNote) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    function onKey(e: KeyboardEvent){
+      if(e.key === 'Escape'){ e.preventDefault(); setShowNote(false); }
+      if(e.key === 'Tab' && popRef.current){
+        const focusables = popRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        );
+        if(focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length -1];
+        if(e.shiftKey){
+          if(document.activeElement === first){
+            e.preventDefault();
+            (last as HTMLElement).focus();
+          }
+        } else {
+          if(document.activeElement === last){
+            e.preventDefault();
+            (first as HTMLElement).focus();
+          }
+        }
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    // lock scroll
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return ()=> {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = origOverflow;
+      if(previouslyFocused) previouslyFocused.focus(); else anchorRef.current?.focus();
+    };
+  }, [showNote]);
+
   return (
-    <li className="task-item">
+    <li className="task-item" style={{position:'relative'}}>
       <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} aria-label="Toggle complete" />
       <div>
         <div className="task-title-wrapper">
@@ -80,8 +124,69 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
       </div>
       <div className="ff-row" style={{alignSelf:'flex-start', gap:'.3rem'}}>
         <Link to={`/timer?taskId=${task.id}&autoStart=1`} className="btn primary" aria-label="Focus with Pomodoro">Focus</Link>
+        <button ref={anchorRef} className="btn subtle" aria-label={existingLinked? 'Open note for task':'Add note for task'} onClick={()=> {
+          if(!existingLinked){
+            createNote(task.title, null, '', task.id);
+          }
+          setShowNote(s=> !s);
+        }}>{existingLinked? 'Note':'Add Note'}</button>
         <button className="btn outline" onClick={() => removeTask(task.id)} aria-label="Delete task">Del</button>
       </div>
+      {showNote && createPortal((
+        <div
+          role="presentation"
+          aria-hidden={false}
+          style={{position:'fixed', inset:0, zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center'}}
+        >
+          <div
+            onMouseDown={e=> { if(e.target === e.currentTarget) setShowNote(false); }}
+            style={{position:'absolute', inset:0, background:'rgba(0,0,0,.45)', backdropFilter:'blur(4px)'}}
+            data-backdrop
+          />
+          <div
+            ref={popRef}
+            className="card"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Note for task ${task.title}`}
+            style={{
+              position:'relative',
+              width:'min(480px, 92vw)',
+              maxHeight:'min(75vh, 600px)',
+              display:'flex',
+              flexDirection:'column',
+              padding:'.85rem .95rem 1rem',
+              boxShadow:'0 10px 40px -4px rgba(0,0,0,.6), 0 2px 14px -2px rgba(0,0,0,.55)',
+              overflow:'hidden',
+              animation:'fadeScale .18s ease',
+            }}
+          >
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'.6rem'}}>
+              <strong style={{fontSize:'.7rem', letterSpacing:'.12em'}}>NOTE – {task.title}</strong>
+              <div className="ff-row" style={{gap:'.35rem'}}>
+                <button className="btn subtle" style={{fontSize:'.55rem'}} onClick={()=> setShowNote(false)} aria-label="Close note editor">✕</button>
+              </div>
+            </div>
+            {(() => {
+              const note = notes.find(n => n.taskId === task.id);
+              if(!note) return <div style={{fontSize:'.55rem'}}>Creating...</div>;
+              return (
+                <textarea
+                  value={note.body}
+                  onChange={e=> updateNote(note.id,{body:e.target.value})}
+                  aria-label="Note body"
+                  style={{width:'100%', flexGrow:1, minHeight:'14rem', fontSize:'.7rem', fontFamily:'inherit', resize:'vertical', lineHeight:1.4}}
+                  placeholder="Write your notes for this task here..."
+                  autoFocus
+                />
+              );
+            })()}
+            <div style={{display:'flex', justifyContent:'flex-end', marginTop:'.55rem'}}>
+              <button className="btn outline" style={{fontSize:'.6rem'}} onClick={()=> setShowNote(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      ), document.body)}
     </li>
   );
 };

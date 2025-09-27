@@ -17,16 +17,8 @@ export interface Task {
   focusSeconds?: number;        
 }
 
-export interface Habit {
-  id: ID;
-  name: string;
-  frequency: 'daily' | 'weekly';
-  streak: number;
-  lastCompletedDate: string | null; 
-  historyDates: string[];           
-  createdAt: string;
-}
-
+// (Removed Habit interface after deprecating Habits feature)
+// export interface Habit { ... }
 export type PomodoroMode = 'focus' | 'shortBreak' | 'longBreak';
 
 export interface PomodoroSession {
@@ -44,7 +36,16 @@ export interface Note {
   id: ID;
   title: string;
   body: string;          
+  folderId: ID | null;   // null => root
+  taskId?: ID;           // optional linkage to a task
   updatedAt: string;
+  createdAt: string;
+}
+
+export interface Folder {
+  id: ID;
+  name: string;
+  parentId: ID | null; // null => root
   createdAt: string;
 }
 
@@ -62,8 +63,8 @@ export interface Settings {
 
 export interface AppStateSnapshot {
   tasks: Task[];
-  habits: Habit[];
   pomodoroSessions: PomodoroSession[];
   notes: Note[];
+  folders: Folder[];
   settings: Settings;
 }

@@ -13,7 +13,6 @@ export default function Layout() {
           <div className="flex w-3/4 gap-20">
           <li><NavLink to="/" end>Dashboard</NavLink></li>
           <li><NavLink to="/tasks">Tasks</NavLink></li>
-          <li><NavLink to="/habits">Habits</NavLink></li>
           <li><NavLink to="/timer">Timer</NavLink></li>
           <li><NavLink to="/notes">Notes</NavLink></li>
             <li><NavLink to="/insights">Insights</NavLink></li>
