@@ -138,10 +138,42 @@ export default function NotesPage(){
   dragRef.current = null;
   }
 
+  const [activeMobilePane, setActiveMobilePane] = useState<'folders'|'notes'|'editor'>('notes');
+  useEffect(()=> {
+    if (window.innerWidth < 800) {
+      // Auto switch to editor if a note selected
+      if(activeNote) setActiveMobilePane('editor');
+    }
+  }, [activeNote]);
+
+  const isNarrow = typeof window !== 'undefined' && window.innerWidth < 800; // coarse check
+
   return (
     <div className="ff-row" style={{alignItems:'stretch', gap:0, position:'relative', height:'calc(100dvh - 130px)'}} aria-label="Notes workspace">
+      {/* Mobile pane switcher */}
+      {isNarrow && (
+        <div style={{position:'absolute', top: -42, left:0, right:0, display:'flex', gap:6, padding:'0 0 .25rem'}} aria-label="Notes view switcher">
+          {[
+            {k:'folders', label:'Folders', icon:'📂'},
+            {k:'notes', label:'Notes', icon:'📝'},
+            {k:'editor', label:'Editor', icon:'✍️'}
+          ].map(t => (
+            <button
+              key={t.k}
+              onClick={()=> setActiveMobilePane(t.k as any)}
+              className="btn subtle"
+              style={{flex:1, fontSize:'.55rem', padding:'.45rem .5rem', background: activeMobilePane===t.k? 'var(--accent)':'var(--surface)', color: activeMobilePane===t.k? 'var(--accent-foreground)':'var(--text)', border: activeMobilePane===t.k? '1px solid var(--accent)':'1px solid var(--border)'}}
+            >{t.icon} {t.label}</button>
+          ))}
+        </div>
+      )}
       {/* Folders Panel */}
-      <aside style={{width:panelWidths[0], minWidth:180, maxWidth:420, display:'flex', flexDirection:'column', borderRight:'1px solid var(--border)', background:'var(--surface)', backdropFilter:'blur(6px)'}} aria-label="Folders panel">
+      <aside style={{
+        width:isNarrow? (activeMobilePane==='folders'? '100%':0): panelWidths[0],
+        minWidth:isNarrow? undefined:180,
+        maxWidth:isNarrow? undefined:420,
+        display: isNarrow && activeMobilePane!=='folders'? 'none':'flex',
+        flexDirection:'column', borderRight: isNarrow? 'none':'1px solid var(--border)', background:'var(--surface)', backdropFilter:'blur(6px)'}} aria-label="Folders panel">
         <div style={{padding:'.6rem .75rem', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--border)'}}>
           <h2 style={{fontSize:'.65rem', letterSpacing:'.15em', textTransform:'uppercase', margin:0}}>Folders</h2>
           <button className="btn primary" style={{fontSize:'.55rem'}} onClick={()=> handleCreateFolder(null)}>＋</button>
@@ -175,9 +207,14 @@ export default function NotesPage(){
           </div>
         </div>
       </aside>
-      <div onMouseDown={e=> startDrag(e,0)} style={{cursor:'col-resize', width:4, background:'linear-gradient(to right, transparent, var(--border), transparent)'}} aria-hidden="true" />
+      {!isNarrow && <div onMouseDown={e=> startDrag(e,0)} style={{cursor:'col-resize', width:4, background:'linear-gradient(to right, transparent, var(--border), transparent)'}} aria-hidden="true" />}
       {/* Notes List Panel */}
-      <section style={{width:panelWidths[1], minWidth:260, maxWidth:500, display:'flex', flexDirection:'column', borderRight:'1px solid var(--border)', background:'var(--surface-elev)'}} aria-label="Notes list">
+      <section style={{
+        width:isNarrow? (activeMobilePane==='notes'? '100%':0): panelWidths[1],
+        minWidth:isNarrow? undefined:260,
+        maxWidth:isNarrow? undefined:500,
+        display: isNarrow && activeMobilePane!=='notes'? 'none':'flex',
+        flexDirection:'column', borderRight: isNarrow? 'none':'1px solid var(--border)', background:'var(--surface-elev)'}} aria-label="Notes list">
         <div style={{padding:'.6rem .75rem', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--border)'}}>
           <div style={{display:'flex', alignItems:'center', gap:8}}>
             <h2 style={{fontSize:'.65rem', letterSpacing:'.15em', textTransform:'uppercase', margin:0}}>Notes</h2>
@@ -224,9 +261,13 @@ export default function NotesPage(){
           </ul>
         </div>
       </section>
-      <div onMouseDown={e=> startDrag(e,1)} style={{cursor:'col-resize', width:4, background:'linear-gradient(to right, transparent, var(--border), transparent)'}} aria-hidden="true" />
+      {!isNarrow && <div onMouseDown={e=> startDrag(e,1)} style={{cursor:'col-resize', width:4, background:'linear-gradient(to right, transparent, var(--border), transparent)'}} aria-hidden="true" />}
       {/* Editor Panel */}
-      <section style={{flex:1, display:'flex', flexDirection:'column'}} aria-label="Editor panel">
+      <section style={{
+        flex:1,
+        display: isNarrow && activeMobilePane!=='editor'? 'none':'flex',
+        flexDirection:'column'
+      }} aria-label="Editor panel">
         {!activeNote && <div style={{padding:'2rem 1.5rem', fontSize:'.7rem', color:'var(--text-muted)'}}>Select or create a note to begin.</div>}
         {activeNote && (
           <div style={{display:'flex', flexDirection:'column', height:'100%'}}>

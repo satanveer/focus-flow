@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { TaskFocusBinder } from "../features/pomodoro/TaskFocusBinder";
 import { MiniTimerWidget } from "../features/pomodoro/MiniTimerWidget";
@@ -16,6 +16,7 @@ export default function Layout() {
     { to: '/insights', label: 'Insights' },
     { to: '/settings', label: 'Settings' }
   ];
+  const [navOpen, setNavOpen] = useState(false);
 
   // (Previously had a moving background indicator; removed due to visual overlap creating double "bubble" effect.)
   useEffect(() => {
@@ -26,57 +27,63 @@ export default function Layout() {
 
   return (
     <div className="min-h-dvh flex flex-col">
-      <nav className="sticky top-0 z-50 px-4 pt-4">
-        <div className="relative rounded-3xl border border-[var(--border)] bg-[color:var(--bg-alt)/0.55] backdrop-blur-xl supports-[backdrop-filter]:bg-[color:var(--bg-alt)/0.5] shadow-md ring-1 ring-black/5 dark:ring-white/10">
-          <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-none min-h-[3.25rem] [&_a]:no-underline [&_a:hover]:no-underline [&_a:visited]:no-underline" style={{position:'relative'}}>
+      <nav className="sticky top-0 z-50 px-3 pt-3">
+        <div className="relative rounded-2xl border border-[var(--border)] bg-[color:var(--bg-alt)/0.65] backdrop-blur-xl shadow-md ring-1 ring-black/5 dark:ring-white/10">
+          <div className="flex items-center gap-2 px-3 py-2 min-h-[3rem]" style={{position:'relative'}}>
+            <button
+              className="sm:hidden mr-1 text-[0.8rem] font-bold px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)]/50 hover:bg-[var(--bg)]/80 transition"
+              aria-label={navOpen? 'Close navigation':'Open navigation'}
+              onClick={()=> setNavOpen(o=> !o)}
+            >
+              {navOpen? '✕':'☰'}
+            </button>
             <div className="flex items-center pr-2 mr-1 border-r border-[var(--border)]/60 select-none">
               <span className="text-[0.8rem] font-extrabold tracking-wider bg-gradient-to-r from-[var(--accent)] via-[var(--accent-accent2)] to-[var(--accent-accent3)] text-transparent bg-clip-text">BobbyFlow</span>
             </div>
-            {links.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                end={l.end as any}
-                className={({isActive}) => [
-                  'group relative px-5 py-2.5 text-[0.7rem] font-semibold tracking-wide rounded-2xl whitespace-nowrap select-none no-underline',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
-                  'transition-colors duration-200',
-                  isActive
-                    ? 'text-[var(--accent-foreground)]'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                ].join(' ')}
-                data-active={location.pathname === l.to ? 'true':'false'}
-              >
-                {/* Animated background bubble */}
-                <span
-                  aria-hidden
-                  className={[
-                    'absolute inset-0 rounded-2xl -z-10 overflow-hidden',
-                    'before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-r before:from-[var(--accent)]/95 before:to-[var(--accent)]/70',
-                    'before:opacity-0 before:scale-75 before:blur-[1px] before:transition-all before:duration-400 before:ease-out',
-                    'group-hover:before:opacity-60 group-hover:before:scale-100 group-hover:before:blur-0',
-                    '[&[data-active=true]::before]:opacity-100 [&[data-active=true]::before]:scale-100',
-                    'motion-reduce:before:transition-none'
+            <div className="hidden sm:flex items-center gap-1 flex-wrap overflow-x-auto scrollbar-none [&_a]:no-underline [&_a:hover]:no-underline [&_a:visited]:no-underline">
+              {links.map((l) => (
+                <NavLink
+                  key={l.to}
+                  to={l.to}
+                  end={l.end as any}
+                  onClick={()=> setNavOpen(false)}
+                  className={({isActive}) => [
+                    'group relative px-4 py-2 text-[0.65rem] font-semibold tracking-wide rounded-xl whitespace-nowrap select-none no-underline',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
+                    'transition-colors duration-200',
+                    isActive ? 'text-[var(--accent-foreground)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                   ].join(' ')}
                   data-active={location.pathname === l.to ? 'true':'false'}
-                />
-                {/* Inner subtle surface for active (adds slight elevation) */}
-                <span
-                  aria-hidden
-                  className={[
-                    'absolute inset-0 -z-10 rounded-2xl border border-transparent transition-colors duration-300',
-                    '[&[data-active=true]]:border-white/25 dark:[&[data-active=true]]:border-white/15',
-                    'group-hover:border-[var(--border)]/40'
-                  ].join(' ')}
-                  data-active={location.pathname === l.to ? 'true':'false'}
-                />
-                <span className="relative z-10 tracking-wide">{l.label}</span>
-              </NavLink>
-            ))}
-            <div className="ml-auto flex items-center gap-3 pl-4">
+                >
+                  <span
+                    aria-hidden
+                    className={[
+                      'absolute inset-0 rounded-xl -z-10 overflow-hidden',
+                      'before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-[var(--accent)]/95 before:to-[var(--accent)]/70',
+                      'before:opacity-0 before:scale-75 before:blur-[1px] before:transition-all before:duration-400 before:ease-out',
+                      'group-hover:before:opacity-60 group-hover:before:scale-100 group-hover:before:blur-0',
+                      '[&[data-active=true]::before]:opacity-100 [&[data-active=true]::before]:scale-100',
+                      'motion-reduce:before:transition-none'
+                    ].join(' ')}
+                    data-active={location.pathname === l.to ? 'true':'false'}
+                  />
+                  <span
+                    aria-hidden
+                    className={[
+                      'absolute inset-0 -z-10 rounded-xl border border-transparent transition-colors duration-300',
+                      '[&[data-active=true]]:border-white/25 dark:[&[data-active=true]]:border-white/15',
+                      'group-hover:border-[var(--border)]/40'
+                    ].join(' ')}
+                    data-active={location.pathname === l.to ? 'true':'false'}
+                  />
+                  <span className="relative z-10 tracking-wide">{l.label}</span>
+                </NavLink>
+              ))}
+            </div>
+            <div className="ml-auto flex items-center gap-2 pl-2">
               <MiniTimerWidget />
               <button
-                className="text-[0.65rem] font-medium px-2.5 py-1.5 rounded-xl border border-[var(--border)]/70 bg-[var(--bg)]/40 hover:bg-[var(--bg)]/70 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/70"
+                className="text-[0.6rem] font-medium px-2.5 py-1.5 rounded-lg border border-[var(--border)]/70 bg-[var(--bg)]/40 hover:bg-[var(--bg)]/70 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/70"
                 onClick={() => {
                   if (theme === 'system') {
                     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
@@ -89,7 +96,25 @@ export default function Layout() {
               </button>
             </div>
           </div>
-          {/* subtle bottom gradient + shadow for separation */}
+          {/* Mobile slide-down menu */}
+          {navOpen && (
+            <div className="sm:hidden border-t border-[var(--border)] px-3 pb-3 animate-in fade-in slide-in-from-top-2">
+              <div className="flex flex-col pt-2 gap-1">
+                {links.map(l => (
+                  <NavLink
+                    key={l.to}
+                    to={l.to}
+                    end={l.end as any}
+                    onClick={()=> setNavOpen(false)}
+                    className={({isActive}) => [
+                      'relative px-3 py-2 rounded-lg text-[0.7rem] font-medium tracking-wide',
+                      isActive ? 'bg-[var(--accent)] text-[var(--accent-foreground)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg)]/60 hover:text-[var(--text)]'
+                    ].join(' ')}
+                  >{l.label}</NavLink>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="pointer-events-none absolute inset-x-0 -bottom-6 h-6 bg-gradient-to-b from-black/10 dark:from-white/5 to-transparent opacity-40" />
         </div>
       </nav>
