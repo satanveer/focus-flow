@@ -58,12 +58,13 @@ export const TaskFilters: React.FC = () => {
               >{label}</button>
             );
           })}
-          <label className="ff-row" style={{fontSize:'.65rem'}}>
+          <label className="chk" style={{fontSize:'.65rem'}} aria-label="Hide completed tasks">
             <input
               type="checkbox"
               checked={filters.hideCompleted}
               onChange={e => setFilters({ hideCompleted: e.target.checked })}
             />
+            <span className="chk-box" aria-hidden="true" />
             <span>Hide completed</span>
           </label>
           <button type="button" onClick={clearFilters} className="btn outline" style={{marginLeft:'auto'}}>Reset</button>

@@ -61,7 +61,10 @@ export const TaskForm: React.FC = () => {
         <div className="field" style={{flex:'1 1 140px', minWidth:'140px'}}>
           <label htmlFor="task-due">Due date</label>
           <div className="ff-stack" style={{gap:'.25rem'}}>
-            <input id="task-due" type="date" value={dueDate} onChange={e => validateDueDate(e.target.value)} />
+            <div className="date-input">
+              <span className="icon" aria-hidden="true">📅</span>
+              <input id="task-due" type="date" value={dueDate} onChange={e => validateDueDate(e.target.value)} />
+            </div>
             <div className="ff-row" style={{gap:'.4rem', flexWrap:'wrap'}}>
               <QuickDateButton label="Today" onSelect={() => {
                 const d = new Date();

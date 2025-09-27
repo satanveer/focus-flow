@@ -170,3 +170,38 @@ html.dark .focus-mins-input::placeholder {
 .focus-mins-input::-webkit-outer-spin-button,
 .focus-mins-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .focus-mins-input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Custom Checkbox */
+.chk { position: relative; display:inline-flex; align-items:center; gap:.4rem; cursor:pointer; font-size:.6rem; user-select:none; }
+.chk input[type=checkbox] { position:absolute; opacity:0; pointer-events:none; }
+.chk-box { width:16px; height:16px; border:1.5px solid var(--border); border-radius:4px; display:inline-flex; align-items:center; justify-content:center; background:var(--surface); box-shadow:var(--shadow-sm); transition: background var(--transition), border-color var(--transition), transform .25s ease; font-size:.65rem; line-height:1; color:var(--accent-foreground); }
+.chk input:focus-visible + .chk-box { outline:2px solid transparent; }
+.chk input:checked + .chk-box { background: linear-gradient(135deg,var(--accent) 0%,var(--accent-accent2) 60%,var(--accent-accent3) 100%); border-color:var(--accent); }
+.chk input:checked + .chk-box::after { content:'\2713'; transform:translateY(-1px); }
+.chk:hover .chk-box { border-color: var(--accent); }
+.chk:active .chk-box { transform: scale(.92); }
+html.dark .chk-box { background: var(--bg-alt); }
+
+/* Checkbox states */
+.chk[data-state="indeterminate"] .chk-box { background:var(--accent-accent4); border-color:var(--accent-accent4); }
+.chk[data-state="indeterminate"] .chk-box::after { content:'\2012'; font-weight:600; }
+
+/* Custom Date Input */
+.date-input { position:relative; display:flex; align-items:center; }
+.date-input input[type=date] { appearance:none; -webkit-appearance:none; font:inherit; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:.45rem .65rem .45rem 2.1rem; border-radius:8px; font-size:.6rem; letter-spacing:.03em; transition:border-color var(--transition), background var(--transition), color var(--transition); min-height:34px; }
+.date-input input[type=date]:hover { border-color: var(--accent); }
+.date-input input[type=date]:focus { border-color: var(--accent); box-shadow:0 0 0 1px var(--accent) inset, 0 0 0 3px hsl(221 83% 53% / .15); outline:none; }
+.date-input .icon { position:absolute; left:.6rem; width:1rem; height:1rem; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; pointer-events:none; color:var(--accent); filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+html.dark .date-input input[type=date] { background:var(--bg-alt); }
+.date-input input[type=date]::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.75; filter: hue-rotate(10deg); }
+.date-input input[type=date]:hover::-webkit-calendar-picker-indicator { opacity:1; }
+.date-input input[type=date]::-webkit-datetime-edit-fields-wrapper { padding:0; }
+.date-input input[type=date]::-webkit-datetime-edit { letter-spacing:.05em; }
+.date-input input[type=date]::-webkit-datetime-edit-text { opacity:.6; }
+.date-input input[type=date]::-webkit-datetime-edit-day-field,
+.date-input input[type=date]::-webkit-datetime-edit-month-field,
+.date-input input[type=date]::-webkit-datetime-edit-year-field { text-transform:uppercase; }
+@media (forced-colors: active){
+	.date-input input[type=date] { border:1px solid CanvasText; }
+	.chk-box { border:1px solid CanvasText; }
+}

@@ -78,7 +78,10 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
 
   return (
     <li className="task-item" style={{position:'relative'}}>
-      <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} aria-label="Toggle complete" />
+      <label className="chk" aria-label="Toggle complete">
+        <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} />
+        <span className="chk-box" aria-hidden="true" />
+      </label>
       <div>
         <div className="task-title-wrapper">
           <button onClick={()=> setOpen(o=> !o)} className="task-title" style={{all:'unset', cursor:'pointer', fontWeight: task.completed ? 400:600, textDecoration: task.completed ? 'line-through':'none'}} aria-expanded={open} aria-controls={`task-focus-${task.id}`} aria-label={`${open? 'Collapse':'Expand'} focus history for task ${task.title}`}>

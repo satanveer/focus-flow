@@ -58,8 +58,9 @@ export default function SettingsPage() {
 
       <section className="card ff-stack" style={{padding:'1rem', gap:'.75rem'}}>
         <h2 style={{fontSize:'.8rem', letterSpacing:'.1em', textTransform:'uppercase', color:'var(--text-muted)'}}>Behavior</h2>
-        <label style={labelStyle}> 
+        <label style={labelStyle} className="chk" aria-label="Auto-start next session chain">
           <input type="checkbox" checked={autoStartNext} onChange={toggleAutoStart} />
+          <span className="chk-box" aria-hidden="true" />
           <span>Auto-start next session in a chain</span>
         </label>
         <div style={{display:'flex', flexDirection:'column', gap:'.35rem'}}>
@@ -92,12 +93,14 @@ export default function SettingsPage() {
 
       <section className="card ff-stack" style={{padding:'1rem', gap:'.75rem'}}>
         <h2 style={{fontSize:'.8rem', letterSpacing:'.1em', textTransform:'uppercase', color:'var(--text-muted)'}}>Alerts</h2>
-        <label style={labelStyle}>
+        <label style={labelStyle} className="chk" aria-label="Sound on session end">
           <input type="checkbox" checked={enableSound} onChange={toggleSound} />
+          <span className="chk-box" aria-hidden="true" />
           <span>Sound on session end</span>
         </label>
-        <label style={labelStyle}>
+        <label style={labelStyle} className="chk" aria-label="Desktop notification on session end">
           <input type="checkbox" checked={enableNotifications} onChange={toggleNotifications} />
+          <span className="chk-box" aria-hidden="true" />
           <span>Desktop notification on session end</span>
         </label>
         <div style={{display:'flex', flexWrap:'wrap', gap:'.5rem', marginTop:'.25rem'}}>
