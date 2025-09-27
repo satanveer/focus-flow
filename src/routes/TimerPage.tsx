@@ -48,10 +48,12 @@ export default function TimerPage() {
     return () => clearInterval(id);
   }, [getRemaining]);
 
-  // Auto start when arriving with autoStart=1 and no active session
+  // Auto start when arriving with autoStart=1 and no active session (only on initial mount)
+  const hasAutoStartedRef = useRef(false);
   useEffect(() => {
     const auto = params.get('autoStart');
-    if (auto && !active) {
+    if (auto && !active && !hasAutoStartedRef.current) {
+      hasAutoStartedRef.current = true;
       start({ mode: 'focus', taskId: taskIdParam });
     }
   }, [params, active, start, taskIdParam]);
