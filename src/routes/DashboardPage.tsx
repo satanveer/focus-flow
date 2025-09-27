@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, LabelList } from 'recharts';
 import FocusGoalBar from '../features/pomodoro/components/FocusGoalBar';
 import { usePomodoro } from '../features/pomodoro/PomodoroContext';
 import { useTasksContext } from '../features/tasks/TasksContext';
@@ -49,6 +50,33 @@ export default function DashboardPage() {
     }, [tasks]);
     const recentSessions = useMemo(()=> sessions.slice().reverse().slice(0,5), [sessions]);
     const todayFocusMinutes = useMemo(()=> sessions.filter((s:any)=> s.mode==='focus' && s.endedAt && new Date(s.startedAt).toDateString()=== new Date().toDateString()).reduce((a:number,b:any)=> a + b.durationSec,0)/60, [sessions]);
+
+    const todayHourly = useMemo(()=> {
+        const hours = Array.from({length:24}, (_,h)=> ({ hour:h, label:h.toString().padStart(2,'0'), minutes:0, sessions:0 }));
+        sessions.forEach((s:any)=> {
+            if(s.mode!=='focus' || !s.endedAt) return;
+            const d = new Date(s.startedAt);
+            const now = new Date();
+            if(d.getFullYear()=== now.getFullYear() && d.getMonth()=== now.getMonth() && d.getDate()=== now.getDate()){
+                const h = d.getHours();
+                hours[h].minutes += Math.round(s.durationSec/60);
+                hours[h].sessions += 1;
+            }
+        });
+        return hours;
+    }, [sessions]);
+
+    const DailyTooltip = ({active, payload, label}: any) => {
+        if(active && payload && payload.length){
+            const p = payload[0].payload;
+            return <div style={{background:'var(--surface)', border:'1px solid var(--border)', padding:'.35rem .5rem', borderRadius:6, fontSize:'.55rem'}}>
+                <div style={{fontWeight:600, marginBottom:2}}>{label}:00</div>
+                <div>{p.minutes} min</div>
+                {p.sessions>0 && <div>{p.sessions} session{p.sessions>1?'s':''}</div>}
+            </div>;
+        }
+        return null;
+    };
 
     return (
         <div className="ff-stack" style={{gap:'1.5rem'}}>
@@ -169,17 +197,34 @@ export default function DashboardPage() {
                         <Link to="/insights" className="btn subtle" style={{fontSize:'.55rem', alignSelf:'flex-start'}}>Insights →</Link>
                 </section>
 
-                {/* Quick Stats */}
-                <section className="card ff-stack" style={{gap:'.5rem'}} aria-label="Quick stats">
-                    <h2 style={{fontSize:'.75rem', letterSpacing:'.12em', textTransform:'uppercase', color:'var(--text-muted)', margin:0}}>Stats</h2>
-                    <ul style={{listStyle:'none', margin:0, padding:0, fontSize:'.6rem'}} className="ff-stack" >
-                        <li>Focus today: {Math.round(todayFocusMinutes)}m</li>
-                        <li>Active tasks: {tasks.filter(t=> !t.completed).length}</li>
-                        <li>Completed tasks: {tasks.filter(t=> t.completed).length}</li>
-                        <li>Total sessions: {sessions.length}</li>
-                    </ul>
-                </section>
             </div>
+            {/* Full-width Today Focus chart moved to bottom */}
+            <section className="card ff-stack" style={{gap:'.8rem', padding:'1rem'}} aria-label="Today focus chart">
+                <div className="ff-row" style={{justifyContent:'space-between', alignItems:'baseline', flexWrap:'wrap', gap:'.5rem'}}>
+                    <h2 style={{fontSize:'.85rem', margin:0}}>Today Focus</h2>
+                    <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>Hourly minutes (total: {Math.round(todayFocusMinutes)}m)</span>
+                </div>
+                <div style={{width:'100%', height:220}}>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={todayHourly} margin={{top:8, right:12, left:4, bottom:4}}>
+                            <defs>
+                                <linearGradient id="dashDaily" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.35} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="label" tick={{fontSize:9}} stroke="var(--text-muted)" interval={1} />
+                            <YAxis tick={{fontSize:10}} stroke="var(--text-muted)" width={34} />
+                            <Tooltip content={<DailyTooltip />} />
+                            <Bar dataKey="minutes" fill="url(#dashDaily)" radius={[3,3,0,0]} maxBarSize={18}>
+                                {todayHourly.map((d,i)=> <Cell key={i} fillOpacity={d.minutes===0?0.18:1} />)}
+                                <LabelList dataKey="minutes" position="top" formatter={(v:any)=> (typeof v==='number' && v>0)? v:''} style={{fontSize:9, fill:'var(--text-muted)'}} />
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </section>
         </div>
     );
 }

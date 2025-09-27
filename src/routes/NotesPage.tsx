@@ -32,6 +32,9 @@ export default function NotesPage(){
     return body.split(/\n+/).filter(l => /^([🟢🟡🔴])\s.+—\s/.test(l));
   }
   const activeNote = notes.find(n=> n.id===activeNoteId) || null;
+  // Drag & Drop state
+  const [dragNoteId, setDragNoteId] = useState<string | null>(null);
+  const [dragOverFolder, setDragOverFolder] = useState<string | 'root' | null>(null);
 
   function toggleFolder(id: string){
     setExpanded(prev => { const n = new Set(prev); n.has(id)? n.delete(id): n.add(id); return n; });
@@ -73,7 +76,12 @@ export default function NotesPage(){
     const isOpen = expanded.has(id);
     const totalNotes = childNotes.length + children.reduce((a,c)=> a + getNotesInFolder(c.id).length,0);
     return (
-      <div style={{marginLeft: depth*6}}>
+      <div
+        style={{marginLeft: depth*6, outline: dragOverFolder===id? '2px solid var(--accent)':'none', borderRadius:4, transition:'outline .12s'}}
+        onDragOver={e=> { if(dragNoteId){ e.preventDefault(); if(dragOverFolder!==id) setDragOverFolder(id);} }}
+        onDrop={e=> { e.preventDefault(); if(dragNoteId){ moveNote(dragNoteId, id); setDragNoteId(null); setDragOverFolder(null);} }}
+        onDragLeave={e=> { /* If leaving the folder area entirely */ if(!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)){ if(dragOverFolder===id) setDragOverFolder(null);} }}
+      >
         <div className="ff-row" style={{alignItems:'center', gap:4, justifyContent:'space-between'}}>
           <button aria-expanded={isOpen} onClick={()=> toggleFolder(id)} className="btn subtle" style={{fontSize:'.55rem', flex:1, justifyContent:'flex-start'}}><FolderIcon open={isOpen}/> {folder.name} <span style={{marginLeft:'auto', fontSize:'.45rem', background:'var(--surface)', border:'1px solid var(--border)', padding:'0 .35rem', borderRadius:999}}>{totalNotes}</span></button>
           <div className="ff-row" style={{gap:2}}>
@@ -86,7 +94,15 @@ export default function NotesPage(){
           <div className="ff-stack" style={{marginTop:4, gap:4}}>
             {children.map(ch => <FolderNode key={ch.id} id={ch.id} depth={depth+1} />)}
             {childNotes.map(n => (
-              <button key={n.id} onClick={()=> {setActiveNoteId(n.id); setActiveFolder(id);} } className={`btn subtle ${n.id===activeNoteId? 'primary':''}`} style={{fontSize:'.5rem', justifyContent:'flex-start'}}>
+              <button
+                key={n.id}
+                draggable
+                onDragStart={()=> { setDragNoteId(n.id); }}
+                onDragEnd={()=> { setDragNoteId(null); setDragOverFolder(null);} }
+                onClick={()=> {setActiveNoteId(n.id); setActiveFolder(id);} }
+                className={`btn subtle ${n.id===activeNoteId? 'primary':''}`}
+                style={{fontSize:'.5rem', justifyContent:'flex-start', opacity: dragNoteId===n.id? .4:1}}
+              >
                 📝 {n.title || 'Untitled'}
               </button>
             ))}
@@ -135,10 +151,24 @@ export default function NotesPage(){
         </div>
         <div style={{flex:1, overflowY:'auto', padding:'.5rem .4rem 1rem'}} className="ff-stack" aria-label="Folder tree">
           {rootFolders.map(f => <FolderNode key={f.id} id={f.id} depth={0} />)}
-          <div className="ff-stack" style={{gap:4, marginTop:8}}>
+          <div
+            className="ff-stack"
+            style={{gap:4, marginTop:8, outline: dragOverFolder==='root'? '2px dashed var(--accent)':'none', borderRadius:6, padding:'2px'}}
+            onDragOver={e=> { if(dragNoteId){ e.preventDefault(); if(dragOverFolder!=='root') setDragOverFolder('root'); } }}
+            onDrop={e=> { e.preventDefault(); if(dragNoteId){ moveNote(dragNoteId, null); setDragNoteId(null); setDragOverFolder(null);} }}
+            onDragLeave={e=> { if(!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)){ if(dragOverFolder==='root') setDragOverFolder(null);} }}
+          >
             <h3 style={{fontSize:'.55rem', margin:'4px 0', textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)'}}>Root Notes</h3>
             {getNotesInFolder(null).filter(n=> !search || (n.title+' '+n.body).toLowerCase().includes(search.toLowerCase())).map(n => (
-              <button key={n.id} onClick={()=> {setActiveNoteId(n.id); setActiveFolder(null);} } className={`btn subtle ${n.id===activeNoteId? 'primary':''}`} style={{fontSize:'.5rem', justifyContent:'flex-start'}}>
+              <button
+                key={n.id}
+                draggable
+                onDragStart={()=> { setDragNoteId(n.id); }}
+                onDragEnd={()=> { setDragNoteId(null); setDragOverFolder(null);} }
+                onClick={()=> {setActiveNoteId(n.id); setActiveFolder(null);} }
+                className={`btn subtle ${n.id===activeNoteId? 'primary':''}`}
+                style={{fontSize:'.5rem', justifyContent:'flex-start', opacity: dragNoteId===n.id? .4:1}}
+              >
                 📝 {n.title||'Untitled'}
               </button>
             ))}
@@ -165,7 +195,14 @@ export default function NotesPage(){
               const refl = extractReflections(n.body);
               return (
                 <li key={n.id}>
-                  <button onClick={()=> setActiveNoteId(n.id)} className={`btn subtle ${n.id===activeNoteId? 'primary':''}`} style={{width:'100%', textAlign:'left', display:'flex', flexDirection:'column', alignItems:'stretch', gap:4, padding:'.55rem .65rem'}}>
+                  <button
+                    onClick={()=> setActiveNoteId(n.id)}
+                    draggable
+                    onDragStart={()=> { setDragNoteId(n.id); }}
+                    onDragEnd={()=> { setDragNoteId(null); setDragOverFolder(null);} }
+                    className={`btn subtle ${n.id===activeNoteId? 'primary':''}`}
+                    style={{width:'100%', textAlign:'left', display:'flex', flexDirection:'column', alignItems:'stretch', gap:4, padding:'.55rem .65rem', opacity: dragNoteId===n.id? .4:1}}
+                  >
                     <div style={{display:'flex', alignItems:'center', gap:6}}>
                       <span style={{fontSize:'.75rem'}}>{n.taskId? '🔗':'📝'}</span>
                       <span style={{fontWeight:600, fontSize:'.6rem', letterSpacing:'.03em', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{n.title||'Untitled'}</span>

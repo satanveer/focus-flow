@@ -25,25 +25,27 @@ function nowISO(){ return new Date().toISOString(); }
 function uuid(){ return Math.random().toString(36).slice(2,10); }
 
 export const NotesProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-
-  // load
-  useEffect(()=> {
+  // Lazy initialisation so we DON'T first mount with empty arrays (which would immediately overwrite storage)
+  function readInitial(): PersistShape {
     try {
       const raw = localStorage.getItem(LS_KEY);
       if(raw){
         const parsed: PersistShape = JSON.parse(raw);
-        setFolders(parsed.folders||[]);
-        setNotes(parsed.notes||[]);
+        if(Array.isArray(parsed.folders) && Array.isArray(parsed.notes)) return parsed;
       }
     } catch {}
-  }, []);
+    return {folders: [], notes: []};
+  }
+  const initial = readInitial();
+  const [folders, setFolders] = useState<Folder[]>(initial.folders);
+  const [notes, setNotes] = useState<Note[]>(initial.notes);
 
-  // persist
+  // persist (runs after first paint; state already contains loaded values due to lazy init)
   useEffect(()=> {
-    const data: PersistShape = {folders, notes};
-    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch {}
+    try {
+      const data: PersistShape = {folders, notes};
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    } catch {}
   }, [folders, notes]);
 
   const createFolder = useCallback((name: string, parentId: ID | null): Folder => {

@@ -69,29 +69,78 @@ body {
 	border-radius: var(--radius-lg);
 }
 
-nav a {
-	padding: 6px 10px;
-	border-radius: 999px;
-	line-height: 1;
-	font-size: 0.85rem;
-	transition: background var(--transition), color var(--transition);
-}
-nav a:hover {
-	background: var(--bg-alt);
-}
-nav a[aria-current="page"] {
-	background: var(--accent);
-	color: var(--accent-foreground);
-}
-html.dark nav a[aria-current="page"] {
-	background: var(--accent);
-	color: var(--accent-foreground);
+/* Navbar global reset (component now handles its own visuals) */
+nav a, nav a:hover, nav a:visited, nav a:focus {
+	text-decoration: none !important;
 }
 
-/* Focus outline */
-*:focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
+/* Single gradient focus outline (replaces previous multi-layer ring) */
+:root { --focus-gradient: linear-gradient(90deg,var(--accent),var(--accent-accent2),var(--accent-accent3)); }
+
+/* Target common interactive controls */
+a:focus, button:focus, input:focus, textarea:focus, select:focus, [role="button"]:focus, [tabindex]:focus { outline: none; }
+
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [role="button"]:focus-visible, [tabindex]:focus-visible {
+	outline: none;
+	position: relative;
+}
+
+/* Pseudo-element gradient ring (mask creates a hollow center so it looks like an outline) */
+a:focus-visible::after,
+button:focus-visible::after,
+input:focus-visible::after,
+textarea:focus-visible::after,
+select:focus-visible::after,
+[role="button"]:focus-visible::after,
+[tabindex]:focus-visible::after {
+	content: '';
+	position: absolute;
+	inset: -3px; /* ring thickness + gap */
+	border-radius: inherit;
+	padding: 2px; /* thickness of visible ring */
+	background: var(--focus-gradient);
+	/* Mask trick to show only the border portion */
+	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+	mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	pointer-events: none;
+	filter: drop-shadow(0 1px 2px hsl(221 83% 10% / 0.25));
+	transition: opacity 140ms ease-out, filter 180ms ease-out;
+}
+
+/* Dark mode slight boost */
+html.dark a:focus-visible::after,
+html.dark button:focus-visible::after,
+html.dark input:focus-visible::after,
+html.dark textarea:focus-visible::after,
+html.dark select:focus-visible::after,
+html.dark [role="button"]:focus-visible::after,
+html.dark [tabindex]:focus-visible::after {
+	filter: drop-shadow(0 0 0.5px hsl(221 83% 60% / 0.9)) drop-shadow(0 2px 6px hsl(221 83% 5% / 0.55));
+}
+
+/* High-contrast fallback */
+@media (forced-colors: active) {
+	a:focus-visible::after,
+	button:focus-visible::after,
+	input:focus-visible::after,
+	textarea:focus-visible::after,
+	select:focus-visible::after,
+	[role="button"]:focus-visible::after,
+	[tabindex]:focus-visible::after {
+		content: none;
+	}
+	a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [role="button"]:focus-visible, [tabindex]:focus-visible {
+		outline: 2px solid CanvasText !important;
+		outline-offset: 2px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	a:focus-visible::after, button:focus-visible::after, input:focus-visible::after, textarea:focus-visible::after, select:focus-visible::after, [role="button"]:focus-visible::after, [tabindex]:focus-visible::after {
+		transition: none;
+	}
 }
 
 /* Scrollbar (webkit) */
