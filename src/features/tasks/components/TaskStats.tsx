@@ -4,6 +4,7 @@ import { useTasksContext } from '../TasksContext';
 export const TaskStats: React.FC = () => {
   const { stats } = useTasksContext();
   const pct = stats.total === 0 ? 0 : Math.round(stats.completionRate * 100);
+  const focusMins = Math.round((stats as any).totalFocusSeconds / 60);
 
   return (
     <div className="ff-stack">
@@ -11,6 +12,7 @@ export const TaskStats: React.FC = () => {
         <div className="stat-card"><span>Total</span><strong>{stats.total}</strong></div>
         <div className="stat-card"><span>Completed</span><strong>{stats.completed}</strong></div>
         <div className="stat-card"><span>Progress</span><strong>{pct}%</strong></div>
+        <div className="stat-card"><span>Focus</span><strong>{focusMins}m</strong></div>
       </div>
     </div>
   );

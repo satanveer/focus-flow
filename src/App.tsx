@@ -1,8 +1,5 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
-import { Routes, Route, NavLink } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import DashboardPage from "./routes/DashboardPage";
 import TasksPage from "./routes/TasksPage";
 import HabitsPage from "./routes/HabitsPage";
@@ -11,12 +8,15 @@ import NotesPage from "./routes/NotesPage";
 import InsightsPage from "./routes/InsightsPage";
 import SettingsPage from "./routes/SettingsPage";
 import Layout from "./layouts/Layout";
+import { PomodoroProvider } from './features/pomodoro/PomodoroContext';
+import { TasksProvider } from './features/tasks/TasksContext';
 
 
 function App() {
-  const [count, setCount] = useState(0);
 
   return (
+  <PomodoroProvider>
+  <TasksProvider>
     <Routes>
       <Route element={<Layout/>}>
         <Route index element={<DashboardPage />} />
@@ -28,6 +28,8 @@ function App() {
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>
+    </TasksProvider>
+    </PomodoroProvider>
   );
 }
 

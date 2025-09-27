@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Task } from '../../../domain/models';
 import { useTasksContext } from '../TasksContext';
+import { Link } from 'react-router-dom';
 
 function tagColor(tag: string) {
   // Simple hash to h(0-359)
@@ -37,9 +38,13 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
         <div className="task-meta">
           {dueInfo(task)}
           {task.tags.map(tag => <span key={tag} className="tag" style={{background:`hsl(${(tagColor(tag).match(/\d+/)||['0'])[0]} 70% 18%)`, borderColor: tagColor(tag), color: tagColor(tag)}}>{tag}</span>)}
+          {typeof task.focusSeconds === 'number' && task.focusSeconds > 0 && (
+            <span className="tag" style={{background:'var(--accent-accent2)', borderColor:'var(--accent-accent3)', color:'#fff'}}>⏱ {Math.round(task.focusSeconds/60)}m</span>
+          )}
         </div>
       </div>
       <div className="ff-row" style={{alignSelf:'flex-start', gap:'.3rem'}}>
+        <Link to={`/timer?taskId=${task.id}&autoStart=1`} className="btn primary" aria-label="Focus with Pomodoro">Focus</Link>
         <button className="btn outline" onClick={() => removeTask(task.id)} aria-label="Delete task">Del</button>
       </div>
     </li>

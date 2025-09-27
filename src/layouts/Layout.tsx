@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
+import { TaskFocusBinder } from "../features/pomodoro/TaskFocusBinder";
+import { MiniTimerWidget } from "../features/pomodoro/MiniTimerWidget";
 
 export default function Layout() {
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -17,7 +19,8 @@ export default function Layout() {
             <li><NavLink to="/insights">Insights</NavLink></li>
           <li><NavLink to="/settings">Settings</NavLink></li>
           </div>
-          <li className="flex items-center">
+          <li className="flex items-center gap-2">
+            <MiniTimerWidget />
             <button
               className="text-xs px-2 py-1 rounded border border-[var(--border)] hover:bg-[var(--bg)] transition"
               onClick={() => {
@@ -34,7 +37,10 @@ export default function Layout() {
           </li>
         </ul>
       </nav>
-      <main className="flex-1 p-4"><Outlet /></main>
+      <main className="flex-1 p-4">
+        <TaskFocusBinder />
+        <Outlet />
+      </main>
     </div>
   );
 }

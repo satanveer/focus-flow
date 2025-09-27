@@ -26,7 +26,7 @@ const defaultFilters: TaskFilters = {
 export function useTasks() {
   // Persisted baseline
   const [persisted, setPersisted] = useLocalStorageState<Task[]>(STORAGE_KEY, []);
-  const [tasks, dispatch] = useReducer(taskReducer, persisted);
+  const [tasks, dispatch] = useReducer(taskReducer, persisted.map(t => ({ ...t, focusSeconds: t.focusSeconds ?? 0 })));
 
   // Sync reducer state to localStorage
   useEffect(() => {
@@ -93,7 +93,8 @@ export function useTasks() {
     const total = tasks.length;
     const completed = tasks.filter(t => t.completed).length;
     const completionRate = total === 0 ? 0 : completed / total;
-    return { total, completed, completionRate };
+    const totalFocusSeconds = tasks.reduce((acc, t) => acc + (t.focusSeconds || 0), 0);
+    return { total, completed, completionRate, totalFocusSeconds };
   }, [tasks]);
 
   return {

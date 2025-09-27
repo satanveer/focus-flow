@@ -12,7 +12,9 @@ export interface Task {
   dueDate: string | null;       
   completed: boolean;
   createdAt: string;            
-  updatedAt: string;             
+  updatedAt: string;            
+  /** Total focused (Pomodoro) seconds accumulated */
+  focusSeconds?: number;        
 }
 
 export interface Habit {
@@ -34,6 +36,8 @@ export interface PomodoroSession {
   durationSec: number;   
   endedAt?: string;      
   aborted?: boolean;
+  /** Optional task this session was focusing on */
+  taskId?: ID;
 }
 
 export interface Note {
