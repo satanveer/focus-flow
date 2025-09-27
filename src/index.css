@@ -165,3 +165,8 @@ html.dark .focus-mins-input::placeholder {
 }
 
 .focus-mins-input:focus::placeholder { opacity: .35; filter: none; transition: opacity .25s ease; }
+
+/* Remove native number input spin buttons (keep + / - custom controls) */
+.focus-mins-input::-webkit-outer-spin-button,
+.focus-mins-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.focus-mins-input[type=number] { -moz-appearance: textfield; appearance: textfield; }

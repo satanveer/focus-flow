@@ -300,7 +300,7 @@ export default function TimerPage() {
             </div>
             <div style={{width:'100%', display:'flex', justifyContent:'center'}}>
               <div style={{display:'flex', flexWrap:'wrap', gap:'.45rem', justifyContent:'center', maxWidth:540}}>
-                {[5,10,15,20,25,30,35,40,45,50,55,60].map(p => {
+                {[5,10,15,20,25,30,35,40,45,50,55,60,70,80,90,100,120].map(p => {
                   const activePreset = selectedPreset === p && !active;
                   return (
                     <button
