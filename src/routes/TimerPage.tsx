@@ -11,7 +11,7 @@ function format(seconds: number) {
 }
 
 export default function TimerPage() {
-  const { start, pause, resume, abort, complete, active, getRemaining, focusDurations, updateDurations, autoStartNext, toggleAutoStart, sessions, focusCycleCount, creditMode, longBreakEvery, updateCreditMode, updateLongBreakEvery, enableSound, enableNotifications, toggleSound, toggleNotifications } = usePomodoro() as any;
+  const { start, pause, resume, abort, complete, active, getRemaining, focusDurations, sessions, focusCycleCount, longBreakEvery } = usePomodoro() as any;
   const { tasks } = useTasksContext();
   const [remaining, setRemaining] = useState(getRemaining());
   const [params] = useSearchParams();
@@ -59,11 +59,10 @@ export default function TimerPage() {
   const elapsed = totalForMode - remaining;
   const elapsedPct = pct;
   const nextLongBreakIn = useMemo(() => {
-    // every 4th focus is long; show how many more focus completions until long break
-    const mod = focusCycleCount % 4; // 0 just after long break or at start
-    const remainingToLong = (mod === 0 ? 4 : 4 - mod);
+    const mod = focusCycleCount % longBreakEvery; // 0 just after long break or at start
+    const remainingToLong = (mod === 0 ? longBreakEvery : longBreakEvery - mod);
     return remainingToLong;
-  }, [focusCycleCount]);
+  }, [focusCycleCount, longBreakEvery]);
 
   // Keyboard shortcuts
   const keyHandler = useCallback((e: KeyboardEvent) => {
@@ -96,7 +95,7 @@ export default function TimerPage() {
   }, [active]);
 
   return (
-    <div className="ff-stack" style={{gap:'1.5rem'}}>
+  <div className="ff-stack" style={{gap:'1.5rem'}}>
       <FocusGoalBar />
       <header className="ff-stack" style={{gap:'.25rem'}}>
         <h1 style={{fontSize:'1.3rem', fontWeight:600}}>Pomodoro</h1>
@@ -104,7 +103,7 @@ export default function TimerPage() {
           <p style={{fontSize:'.75rem', color:'var(--text-muted)'}}>Focusing: <strong>{tasks.find(t=>t.id===selectedTaskId)?.title}</strong></p>
         )}
       </header>
-      <div className="card ff-stack" style={{alignItems:'center', textAlign:'center', gap:'1rem', padding:'2.5rem 1.5rem'}}>
+  <div className="card ff-stack" style={{alignItems:'center', textAlign:'center', gap:'1rem', padding:'2.5rem 1.5rem'}} role="region" aria-label="Pomodoro timer controls">
         <div className="ff-row" style={{gap:'.5rem', flexWrap:'wrap', justifyContent:'center'}}>
           <select
             value={selectedTaskId || ''}
@@ -128,7 +127,7 @@ export default function TimerPage() {
             </button>
           ))}
         </div>
-        <div style={{position:'relative', width:ring.size, height:ring.size}}>
+  <div style={{position:'relative', width:ring.size, height:ring.size}} role="timer" aria-valuemin={0} aria-valuemax={totalForMode} aria-valuenow={totalForMode-remaining} aria-label={`${mode} session timer`}>
           <div style={{position:'absolute', inset:'-10%', filter:'blur(40px)', opacity: active?0.35:0.15, transition:'opacity .6s', background: `radial-gradient(circle at 50% 50%, ${strokeColor}55, transparent 70%)`}} aria-hidden="true" />
           <svg width={ring.size} height={ring.size} style={{display:'block'}}>
             <circle
@@ -153,26 +152,44 @@ export default function TimerPage() {
             />
           </svg>
           <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'0 .5rem', textAlign:'center'}}>
-            <div style={{fontSize:'clamp(1.7rem,5.5vw,3rem)', fontWeight:600, letterSpacing:'.05em', fontVariantNumeric:'tabular-nums', lineHeight:1}}>{format(remaining)}</div>
+            <div style={{fontSize:'clamp(1.7rem,5.5vw,3rem)', fontWeight:600, letterSpacing:'.05em', fontVariantNumeric:'tabular-nums', lineHeight:1}} aria-live="off">{format(remaining)}</div>
             <div style={{fontSize:'.55rem', textTransform:'uppercase', letterSpacing:'.15em', color:'var(--text-muted)'}}>{mode === 'focus' ? 'Focus' : mode === 'shortBreak' ? 'Short Break' : 'Long Break'}</div>
           </div>
         </div>
-        <div style={{fontSize:'.55rem', color:'var(--text-muted)', display:'flex', gap:'.7rem', flexWrap:'wrap', justifyContent:'center'}}>
+  <div style={{fontSize:'.55rem', color:'var(--text-muted)', display:'flex', gap:'.7rem', flexWrap:'wrap', justifyContent:'center'}} aria-live="polite">
           <span>Elapsed {format(elapsed)}</span>
           <span>Remaining {format(remaining)}</span>
           <span>{Math.round(elapsedPct)}%</span>
-          {mode==='focus' && <span>Long break in {nextLongBreakIn} focus{nextLongBreakIn===1?'':'es'}</span>}
+          {mode==='focus' && (
+            <span
+              style={{
+                display:'inline-flex',
+                alignItems:'center',
+                gap:'.35rem',
+                background: nextLongBreakIn===1? 'var(--accent)' : 'var(--surface-2)',
+                color: nextLongBreakIn===1? 'var(--bg)' : 'var(--text-muted)',
+                padding:'.2rem .55rem',
+                borderRadius: 999,
+                boxShadow: nextLongBreakIn===1? '0 0 0 4px var(--accent-a10)' : 'none',
+                position:'relative',
+                fontWeight:500,
+                animation: nextLongBreakIn===1? 'ff-pulse 1.6s ease-in-out infinite' : 'none'
+              }}
+            >
+              Long break in {nextLongBreakIn} focus{nextLongBreakIn===1?'':'es'}
+            </span>
+          )}
           <span style={{opacity:.65}}>Space: pause/resume • F/S/L: start mode • Esc: abort</span>
         </div>
         <div className="ff-row" style={{gap:'.75rem', flexWrap:'wrap', justifyContent:'center'}}>
           {!active && (
-            <button type="button" className="btn primary" onClick={() => start({ mode:'focus', taskId: selectedTaskId })}>Start</button>
+            <button type="button" className="btn primary" onClick={() => start({ mode:'focus', taskId: selectedTaskId })} aria-label="Start focus session">Start</button>
           )}
           {isRunning && (
-            <button type="button" className="btn" onClick={pause}>Pause</button>
+            <button type="button" className="btn" onClick={pause} aria-label="Pause timer">Pause</button>
           )}
           {isPaused && (
-            <button type="button" className="btn primary" onClick={resume}>Resume</button>
+            <button type="button" className="btn primary" onClick={resume} aria-label="Resume timer">Resume</button>
           )}
           {!!active && (
             <button
@@ -182,10 +199,11 @@ export default function TimerPage() {
                 complete();
                 setRemaining(0); // immediate visual reset per requirement
               }}
+              aria-label="Complete session early and credit time"
             >Complete</button>
           )}
           {!!active && (
-            <button type="button" className="btn danger" onClick={abort}>Abort</button>
+            <button type="button" className="btn danger" onClick={abort} aria-label="Abort session without saving">Abort</button>
           )}
           {!active && (
             <button type="button" className="btn subtle" style={{fontSize:'.6rem'}} onClick={() => {
@@ -195,65 +213,10 @@ export default function TimerPage() {
                 start({ mode:'focus', taskId: selectedTaskId, durationSec: 2 });
                 setTimeout(()=> complete(), 1200);
               } catch {}
-            }}>Test Alert</button>
+            }} aria-label="Test alert sound and notification">Test Alert</button>
           )}
         </div>
-        <form
-          onSubmit={e => e.preventDefault()}
-          className="ff-row"
-          style={{gap:'1rem', flexWrap:'wrap', justifyContent:'center', fontSize:'.55rem', color:'var(--text-muted)'}}
-        >
-          <label style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'.15rem'}}>
-            <span>Focus (m)</span>
-            <input
-              type="number"
-              min={1}
-              value={Math.round(focusDurations.focus/60)}
-              onChange={e => updateDurations({ focus: Number(e.target.value) * 60 })}
-              style={{width:'3.5rem'}}
-            />
-          </label>
-          <label style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'.15rem'}}>
-            <span>Short (m)</span>
-            <input
-              type="number"
-              min={1}
-              value={Math.round(focusDurations.shortBreak/60)}
-              onChange={e => updateDurations({ shortBreak: Number(e.target.value) * 60 })}
-              style={{width:'3.5rem'}}
-            />
-          </label>
-            <label style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'.15rem'}}>
-            <span>Long (m)</span>
-            <input
-              type="number"
-              min={1}
-              value={Math.round(focusDurations.longBreak/60)}
-              onChange={e => updateDurations({ longBreak: Number(e.target.value) * 60 })}
-              style={{width:'3.5rem'}}
-            />
-          </label>
-          <label style={{display:'flex', alignItems:'center', gap:'.35rem', fontSize:'.6rem', cursor:'pointer'}}>
-            <input type="checkbox" checked={autoStartNext} onChange={toggleAutoStart} /> Auto-start chain
-          </label>
-          <label style={{display:'flex', alignItems:'center', gap:'.35rem', fontSize:'.6rem', cursor:'pointer'}}>
-            <input type="checkbox" checked={enableSound} onChange={toggleSound} /> Sound
-          </label>
-          <label style={{display:'flex', alignItems:'center', gap:'.35rem', fontSize:'.6rem', cursor:'pointer'}}>
-            <input type="checkbox" checked={enableNotifications} onChange={toggleNotifications} /> Notify
-          </label>
-          <label style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'.15rem'}}>
-            <span>Credit</span>
-            <select value={creditMode} onChange={e=> updateCreditMode(e.target.value)} style={{fontSize:'.6rem'}}>
-              <option value="full">Full</option>
-              <option value="elapsed">Elapsed</option>
-            </select>
-          </label>
-          <label style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'.15rem'}}>
-            <span>Long every</span>
-            <input type="number" min={1} max={12} value={longBreakEvery} style={{width:'3.5rem'}} onChange={e=> updateLongBreakEvery(Number(e.target.value))} />
-          </label>
-        </form>
+        {/* Configuration controls moved to Settings page */}
         <div className="card" style={{width:'100%', maxWidth:620, padding:'1rem 1rem 1.25rem', background:'var(--surface-1)', border:'1px solid var(--border)', boxShadow:'0 2px 4px -2px rgba(0,0,0,.4), 0 4px 12px -2px rgba(0,0,0,.25)'}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'.75rem'}}>
             <h3 style={{margin:0, fontSize:'.7rem', letterSpacing:'.12em', textTransform:'uppercase', color:'var(--text-muted)'}}>Custom Focus Session</h3>
@@ -317,7 +280,9 @@ export default function TimerPage() {
           {sessions.length===0 && <li style={{fontSize:'.55rem', color:'var(--text-muted)'}}>No sessions yet.</li>}
         </ul>
       </section>
-      <div ref={announcerRef} aria-live="polite" style={{position:'absolute', width:0, height:0, overflow:'hidden'}} />
+  <div ref={announcerRef} aria-live="polite" style={{position:'absolute', width:0, height:0, overflow:'hidden'}} />
+      {/* Local keyframes for pulse (scoped via style tag) */}
+      <style>{`@keyframes ff-pulse { 0%,100% { transform: scale(1); filter:brightness(1);} 50% { transform: scale(1.05); filter:brightness(1.25);} }`}</style>
     </div>
   );
 }

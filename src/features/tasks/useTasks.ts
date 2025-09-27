@@ -14,13 +14,15 @@ export interface TaskFilters {
   priorities: TaskPriority[];  // empty = all
   hideCompleted: boolean;
   tag?: string | null;
+  quickFilter?: 'today' | 'high' | 'focusHeavy' | null;
 }
 
 const defaultFilters: TaskFilters = {
   search: '',
   priorities: [],
   hideCompleted: false,
-  tag: null
+  tag: null,
+  quickFilter: null
 };
 
 export function useTasks() {
@@ -80,6 +82,19 @@ export function useTasks() {
       if (filters.hideCompleted && t.completed) return false;
       if (filters.priorities.length && !filters.priorities.includes(t.priority)) return false;
       if (filters.tag && !t.tags.includes(filters.tag)) return false;
+      if (filters.quickFilter) {
+        if (filters.quickFilter === 'today') {
+          if (!t.dueDate) return false;
+          const today = new Date(); today.setHours(0,0,0,0);
+          const due = new Date(t.dueDate); due.setHours(0,0,0,0);
+          if (due.getTime() !== today.getTime()) return false;
+        } else if (filters.quickFilter === 'high') {
+          if (t.priority !== 'high') return false;
+        } else if (filters.quickFilter === 'focusHeavy') {
+          const focusMinutes = (t.focusSeconds || 0)/60;
+            if (focusMinutes < 60) return false; // threshold for heavy focus
+        }
+      }
       if (s && !(
         t.title.toLowerCase().includes(s) ||
         t.description?.toLowerCase().includes(s) ||
