@@ -98,7 +98,9 @@ export default function DashboardPage() {
                     </div>
                                         <div className="ff-row" style={{gap:'.3rem', flexWrap:'wrap', justifyContent:'center'}}>
                                             {(['focus','shortBreak','longBreak'] as const).map(m => (
-                                                <button key={m} disabled={!!active} onClick={()=> start({mode:m, taskId: selectedTaskId || undefined})} className={`btn ${m===mode && active? 'primary':'outline'}`} style={{fontSize:'.5rem'}}>{m==='focus'? 'F':'S'}{m==='focus'? '':'B'}</button>
+                                                <button key={m} disabled={!!active} onClick={()=> start({mode:m, taskId: selectedTaskId || undefined})} className={`btn ${m===mode && active? 'primary':'outline'}`} style={{fontSize:'.5rem'}}>
+                                                    {m==='focus'? 'F' : m==='shortBreak'? 'SB' : 'LB'}
+                                                </button>
                                             ))}
                                         </div>
                                         <div className="ff-stack" style={{gap:'.4rem', width:'100%', alignItems:'stretch'}}>
@@ -180,9 +182,10 @@ export default function DashboardPage() {
                             {recentSessions.map((s:any) => {
                                 const mins = Math.round(s.durationSec/60);
                                 const start = new Date(s.startedAt).toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'});
+                                const displayMode = s.mode==='focus'? 'F' : s.mode==='shortBreak'? 'SB' : 'LB';
                                 return (
                                     <li key={s.id} style={{display:'flex', gap:'.4rem', fontSize:'.55rem', alignItems:'center'}}>
-                                        <span style={{padding:'.15rem .4rem', background:'var(--surface-2)', borderRadius:4}}>{s.mode==='focus'? 'F':'B'}</span>
+                                        <span style={{padding:'.15rem .4rem', background:'var(--surface-2)', borderRadius:4}}>{displayMode}</span>
                                         <span>{mins}m</span>
                                         <span style={{color:'var(--text-muted)', marginLeft:'auto'}}>{start}</span>
                                     </li>
