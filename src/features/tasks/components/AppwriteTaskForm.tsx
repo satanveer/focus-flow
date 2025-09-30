@@ -90,8 +90,8 @@ export const AppwriteTaskForm: React.FC = () => {
             />
           </div>
           
-          <div className="ff-row" style={{gap:'1rem', alignItems:'end'}}>
-            <div style={{minWidth:'5rem'}}>
+          <div className="ff-row" style={{gap:'1rem', alignItems:'end', flexWrap:'wrap'}}>
+            <div style={{minWidth:'6rem', flex:'0 0 auto'}}>
               <label htmlFor="task-priority" style={{fontSize:'.7rem', fontWeight:500}}>Priority</label>
               <select
                 id="task-priority"
@@ -100,36 +100,42 @@ export const AppwriteTaskForm: React.FC = () => {
                 style={{width:'100%', marginTop:'.25rem'}}
                 disabled={submitting}
               >
-                {priorities.map(p => (
-                  <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-                ))}
+                {priorities.map(p => {
+                  const displayName = p === 'low' ? 'Low' : p === 'medium' ? 'Med' : 'High';
+                  return (
+                    <option key={p} value={p}>{displayName}</option>
+                  );
+                })}
               </select>
             </div>
             
-            <div style={{flex:1}}>
-              <label htmlFor="task-tags" style={{fontSize:'.7rem', fontWeight:500}}>Tags</label>
-              <input
-                id="task-tags"
-                type="text"
-                value={tags}
-                onChange={e => setTags(e.target.value)}
-                placeholder="work, urgent (comma separated)"
-                style={{width:'100%', marginTop:'.25rem'}}
-                disabled={submitting}
-              />
-            </div>
-            
-            <div style={{minWidth:'8rem'}}>
+            <div style={{minWidth:'10rem', flex:'1 1 auto'}}>
               <label htmlFor="task-due" style={{fontSize:'.7rem', fontWeight:500}}>Due Date</label>
-              <input
-                id="task-due"
-                type="date"
-                value={dueDate}
-                onChange={e => setDueDate(e.target.value)}
-                style={{width:'100%', marginTop:'.25rem'}}
-                disabled={submitting}
-              />
+              <div className="date-input" style={{marginTop:'.25rem'}}>
+                <span className="icon" aria-hidden="true">📅</span>
+                <input
+                  id="task-due"
+                  type="date"
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  style={{width:'100%'}}
+                  disabled={submitting}
+                />
+              </div>
             </div>
+          </div>
+          
+          <div>
+            <label htmlFor="task-tags" style={{fontSize:'.7rem', fontWeight:500}}>Tags</label>
+            <input
+              id="task-tags"
+              type="text"
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="work, urgent, project-x (comma separated)"
+              style={{width:'100%', marginTop:'.25rem'}}
+              disabled={submitting}
+            />
           </div>
         </div>
         

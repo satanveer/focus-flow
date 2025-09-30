@@ -35,7 +35,7 @@ export default function Layout() {
             <button
               style={{
                 marginRight:'0.25rem',
-                fontSize:'0.8rem',
+                fontSize:'0.9rem',
                 fontWeight:'bold',
                 padding:'0.5rem',
                 borderRadius:'0.5rem',
@@ -51,7 +51,7 @@ export default function Layout() {
               {navOpen? '✕':'☰'}
             </button>
             <div style={{display:'flex', alignItems:'center', paddingRight:'0.5rem', marginRight:'0.25rem', borderRight:'1px solid color-mix(in srgb, var(--border) 60%, transparent)', userSelect:'none'}}>
-              <span style={{fontSize:'0.8rem', fontWeight:'800', letterSpacing:'0.05em', background:'linear-gradient(to right, var(--accent), var(--accent-accent2), var(--accent-accent3))', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent'}}>BobbyFlow</span>
+              <span style={{fontSize:'0.95rem', fontWeight:'800', letterSpacing:'0.05em', background:'linear-gradient(to right, var(--accent), var(--accent-accent2), var(--accent-accent3))', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent'}}>BobbyFlow</span>
             </div>
             <div style={{alignItems:'center', gap:'0.25rem', flexWrap:'wrap', overflowX:'auto'}} className="desktop-nav">
               {links.map((l) => {
@@ -65,7 +65,7 @@ export default function Layout() {
                   style={{
                     position:'relative',
                     padding:'0.5rem 1rem',
-                    fontSize:'0.65rem',
+                    fontSize:'0.75rem',
                     fontWeight:'600',
                     letterSpacing:'0.025em',
                     borderRadius:'0.75rem',
@@ -113,7 +113,7 @@ export default function Layout() {
               <MiniTimerWidget />
               <button
                 style={{
-                  fontSize:'0.6rem',
+                  fontSize:'0.7rem',
                   fontWeight:'500',
                   padding:'0.375rem 0.625rem',
                   borderRadius:'0.5rem',
@@ -134,7 +134,7 @@ export default function Layout() {
               </button>
               <button
                 style={{
-                  fontSize:'0.6rem',
+                  fontSize:'0.7rem',
                   fontWeight:'500',
                   padding:'0.375rem 0.625rem',
                   borderRadius:'0.5rem',
@@ -174,7 +174,7 @@ export default function Layout() {
                       position:'relative',
                       padding:'0.5rem 0.75rem',
                       borderRadius:'0.5rem',
-                      fontSize:'0.7rem',
+                      fontSize:'0.8rem',
                       fontWeight:'500',
                       letterSpacing:'0.025em',
                       textDecoration:'none',
@@ -196,7 +196,7 @@ export default function Layout() {
                     textAlign: 'left',
                     padding:'0.5rem 0.75rem',
                     borderRadius:'0.5rem',
-                    fontSize:'0.7rem',
+                    fontSize:'0.8rem',
                     fontWeight:'500',
                     letterSpacing:'0.025em',
                     background: 'transparent',

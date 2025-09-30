@@ -62,6 +62,14 @@ button:hover {
 	--shadow-md: 0 4px 14px -2px rgba(0,0,0,0.12);
 	--glow: 0 0 0 1px hsl(221 83% 53% / .15),0 4px 18px -4px hsl(221 83% 53% / .35);
 	--transition: .2s cubic-bezier(.4,0,.2,1);
+	
+	/* Font size system */
+	--font-xs: 0.75rem;   /* 12px */
+	--font-sm: 0.875rem;  /* 14px */
+	--font-base: 1rem;    /* 16px */
+	--font-lg: 1.125rem;  /* 18px */
+	--font-xl: 1.25rem;   /* 20px */
+	--font-2xl: 1.5rem;   /* 24px */
 }
 
 html.dark {
@@ -85,6 +93,8 @@ html.dark {
 	--shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
 	--shadow-md: 0 4px 20px -2px rgba(0,0,0,0.55);
 	--glow: 0 0 0 1px hsl(221 83% 60% / .25), 0 8px 26px -6px hsl(221 83% 60% / .45);
+	
+	/* Font sizes remain the same in dark mode */
 }
 
 body {
@@ -94,6 +104,24 @@ body {
 	-webkit-font-smoothing: antialiased;
 	transition: background var(--transition), color var(--transition);
 	min-height: 100dvh;
+	font-size: 16px; /* Increased from default 14px */
+}
+
+/* Global font size improvements */
+h1 { font-size: var(--font-2xl); }
+h2 { font-size: var(--font-xl); }
+h3 { font-size: var(--font-lg); }
+p, div, span { font-size: var(--font-base); }
+small { font-size: var(--font-sm); }
+
+/* Increase button and input font sizes */
+button, input, select, textarea {
+	font-size: var(--font-sm) !important;
+}
+
+/* Card content font size */
+.card {
+	font-size: var(--font-sm);
 }
 
 /* Utility helpers */
@@ -233,6 +261,7 @@ html.dark .chk-box { background: var(--bg-alt); }
 .date-input input[type=date]:hover { border-color: var(--accent); }
 .date-input input[type=date]:focus { border-color: var(--accent); box-shadow:0 0 0 1px var(--accent) inset, 0 0 0 3px hsl(221 83% 53% / .15); outline:none; }
 .date-input .icon { position:absolute; left:.6rem; width:1rem; height:1rem; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; pointer-events:none; color:var(--accent); filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+html.dark .date-input .icon { color: var(--text); filter: drop-shadow(0 1px 1px rgba(255,255,255,.1)); }
 html.dark .date-input input[type=date] { background:var(--bg-alt); }
 .date-input input[type=date]::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.75; filter: hue-rotate(10deg); }
 .date-input input[type=date]:hover::-webkit-calendar-picker-indicator { opacity:1; }
