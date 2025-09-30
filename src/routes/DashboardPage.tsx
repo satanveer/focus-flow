@@ -95,11 +95,6 @@ export default function DashboardPage() {
                         {isPaused && <button className="btn primary" style={{fontSize:'.6rem'}} onClick={resume}>Resume</button>}
                         {!!active && <button className="btn subtle" style={{fontSize:'.6rem'}} onClick={()=> complete()}>Complete</button>}
                         {!!active && <button className="btn danger" style={{fontSize:'.6rem'}} onClick={()=> abort()}>Abort</button>}
-                                                {!active && (
-                                                    <button type="button" className="btn subtle" style={{fontSize:'.55rem'}} onClick={()=>{
-                                                        try { start({mode:'focus', durationSec:2}); setTimeout(()=> complete(), 1200);} catch {}
-                                                    }}>Test Alert</button>
-                                                )}
                     </div>
                                         <div className="ff-row" style={{gap:'.3rem', flexWrap:'wrap', justifyContent:'center'}}>
                                             {(['focus','shortBreak','longBreak'] as const).map(m => (
@@ -112,15 +107,18 @@ export default function DashboardPage() {
                                                     <option value="">(No task)</option>
                                                     {tasks.slice(0,50).map(t=> <option key={t.id} value={t.id}>{t.title}</option>)}
                                                 </select>
-                                                <div style={{display:'flex', gap:'.25rem', alignItems:'center'}}>
-                                                    <input ref={customInputRef} type="number" min={1} placeholder="mins" aria-label="Custom focus minutes" style={{width:'4rem'}} />
+                                                <div style={{
+                                                    display:'flex', 
+                                                    gap:'.25rem', 
+                                                    alignItems:'center',
+                                                    padding: '0.5rem',
+                                                    border: '1px solid var(--border)',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    background: 'var(--surface)'
+                                                }}>
+                                                    <input ref={customInputRef} type="number" min={1} placeholder="mins" aria-label="Custom focus minutes" style={{width:'4rem', border: 'none', background: 'transparent'}} />
                                                     <button type="button" className="btn outline" style={{fontSize:'.55rem'}} disabled={!!active} onClick={()=>{ const val=Number(customInputRef.current?.value||0); if(val>0) start({mode:'focus', taskId:selectedTaskId||undefined, durationSec: val*60}); }}>Go</button>
                                                 </div>
-                                            </div>
-                                            <div className="ff-row" style={{gap:'.3rem', flexWrap:'wrap', justifyContent:'center'}}>
-                                                {[5,10,15,20,25].map(p => (
-                                                    <button key={p} type="button" disabled={!!active} className="btn subtle" style={{fontSize:'.5rem'}} onClick={()=> start({mode:'focus', taskId:selectedTaskId||undefined, durationSec:p*60})}>{p}m</button>
-                                                ))}
                                             </div>
                                         </div>
                     <Link to="/timer" className="btn subtle" style={{fontSize:'.55rem'}}>Full Timer →</Link>
@@ -129,11 +127,19 @@ export default function DashboardPage() {
                 {/* Quick Add Task */}
                 <section className="card ff-stack" style={{gap:'.6rem'}} aria-label="Quick add task">
                     <h2 style={{fontSize:'.75rem', letterSpacing:'.12em', textTransform:'uppercase', color:'var(--text-muted)', margin:0}}>Quick Task</h2>
-                    <form onSubmit={handleQuickAdd} className="ff-row" style={{gap:'.4rem'}}>
-                        <input placeholder="Task title" value={quickTitle} onChange={e=> setQuickTitle(e.target.value)} aria-label="New task title" />
-                        <button type="submit" className="btn primary" disabled={!quickTitle.trim()} style={{fontSize:'.6rem'}}>Add</button>
+                    <form onSubmit={handleQuickAdd} className="ff-stack" style={{gap:'.4rem', width:'100%'}}>
+                        <input 
+                            placeholder="Task title" 
+                            value={quickTitle} 
+                            onChange={e=> setQuickTitle(e.target.value)} 
+                            aria-label="New task title"
+                            style={{width:'100%'}}
+                        />
+                        <div className="ff-row" style={{gap:'.4rem', justifyContent:'space-between', alignItems:'center'}}>
+                            <Link to="/tasks" className="btn subtle" style={{fontSize:'.55rem'}}>Tasks →</Link>
+                            <button type="submit" className="btn primary" disabled={!quickTitle.trim()} style={{fontSize:'.6rem'}}>Add</button>
+                        </div>
                     </form>
-                    <Link to="/tasks" className="btn subtle" style={{fontSize:'.55rem', alignSelf:'flex-start'}}>Tasks →</Link>
                 </section>
 
                 {/* Top Priority Tasks */}
