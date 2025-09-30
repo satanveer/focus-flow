@@ -180,10 +180,24 @@ export const ProtectedRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: 'var(--bg)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '2rem',
+            height: '2rem',
+            border: '2px solid var(--border)',
+            borderTop: '2px solid var(--accent)',
+            borderRadius: '50%',
+            margin: '0 auto 1rem',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
         </div>
       </div>
     );
@@ -198,7 +212,7 @@ export const ProtectedRoute: React.FC<{
 
 // Simple Login/Register Component
 const LoginPage: React.FC = () => {
-  const { login, register, loginWithGoogle } = useAuth();
+  const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -234,13 +248,36 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      background: 'var(--bg)',
+      padding: '1rem'
+    }}>
+      <div style={{ 
+        maxWidth: '28rem', 
+        width: '100%', 
+        padding: '2rem',
+        background: 'var(--surface)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-md)'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h2 style={{ 
+            fontSize: '1.875rem', 
+            fontWeight: 'bold', 
+            color: 'var(--text)',
+            marginBottom: '0.5rem'
+          }}>
             {isLogin ? 'Sign in to FocusFlow' : 'Create your account'}
           </h2>
-          <p className="mt-2 text-gray-600">
+          <p style={{ 
+            color: 'var(--text-muted)',
+            fontSize: '0.875rem'
+          }}>
             {isLogin 
               ? 'Welcome back! Please sign in to continue.' 
               : 'Join FocusFlow to boost your productivity.'
@@ -248,10 +285,16 @@ const LoginPage: React.FC = () => {
           </p>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {!isLogin && (
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" style={{ 
+                display: 'block', 
+                fontSize: '0.875rem', 
+                fontWeight: '500', 
+                color: 'var(--text)',
+                marginBottom: '0.25rem'
+              }}>
                 Full Name
               </label>
               <input
@@ -261,14 +304,31 @@ const LoginPage: React.FC = () => {
                 required={!isLogin}
                 value={formData.name}
                 onChange={handleInputChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg)',
+                  color: 'var(--text)',
+                  fontSize: '0.875rem',
+                  transition: 'border-color 0.2s, box-shadow 0.2s'
+                }}
                 placeholder="Enter your full name"
+                onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--accent)'}
+                onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--border)'}
               />
             </div>
           )}
           
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '500', 
+              color: 'var(--text)',
+              marginBottom: '0.25rem'
+            }}>
               Email Address
             </label>
             <input
@@ -278,13 +338,30 @@ const LoginPage: React.FC = () => {
               required
               value={formData.email}
               onChange={handleInputChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg)',
+                color: 'var(--text)',
+                fontSize: '0.875rem',
+                transition: 'border-color 0.2s, box-shadow 0.2s'
+              }}
               placeholder="Enter your email"
+              onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--accent)'}
+              onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--border)'}
             />
           </div>
           
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '500', 
+              color: 'var(--text)',
+              marginBottom: '0.25rem'
+            }}>
               Password
             </label>
             <input
@@ -294,14 +371,33 @@ const LoginPage: React.FC = () => {
               required
               value={formData.password}
               onChange={handleInputChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg)',
+                color: 'var(--text)',
+                fontSize: '0.875rem',
+                transition: 'border-color 0.2s, box-shadow 0.2s'
+              }}
               placeholder="Enter your password"
               minLength={8}
+              onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--accent)'}
+              onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--border)'}
             />
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-md">
+            <div style={{
+              color: 'var(--danger)',
+              fontSize: '0.875rem',
+              textAlign: 'center',
+              background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)'
+            }}>
               {error}
             </div>
           )}
@@ -309,19 +405,55 @@ const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '0.5rem 1rem',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: 'var(--accent-foreground)',
+              background: loading ? 'var(--text-muted)' : 'var(--accent)',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background 0.2s',
+              opacity: loading ? 0.5 : 1
+            }}
+            onMouseOver={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--accent) 90%, black)')}
+            onMouseOut={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--accent)')}
           >
             {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
           </button>
 
+          {/* TODO: Re-enable Google Sign-in later
           {isLogin && (
             <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
+              <div style={{ position: 'relative' }}>
+                <div style={{ 
+                  position: 'absolute', 
+                  inset: 0, 
+                  display: 'flex', 
+                  alignItems: 'center' 
+                }}>
+                  <div style={{ 
+                    width: '100%', 
+                    borderTop: '1px solid var(--border)' 
+                  }} />
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
+                <div style={{ 
+                  position: 'relative', 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  fontSize: '0.875rem' 
+                }}>
+                  <span style={{ 
+                    padding: '0 0.5rem', 
+                    background: 'var(--surface)', 
+                    color: 'var(--text-muted)' 
+                  }}>
+                    Or continue with
+                  </span>
                 </div>
               </div>
 
@@ -329,9 +461,26 @@ const LoginPage: React.FC = () => {
                 type="button"
                 onClick={() => loginWithGoogle()}
                 disabled={loading}
-                className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '0.5rem 1rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: 'var(--text)',
+                  background: 'var(--bg)',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s',
+                  opacity: loading ? 0.5 : 1
+                }}
+                onMouseOver={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--bg-alt)')}
+                onMouseOut={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--bg)')}
               >
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                <svg style={{ width: '1.25rem', height: '1.25rem', marginRight: '0.5rem' }} viewBox="0 0 24 24">
                   <path
                     fill="#4285f4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -353,12 +502,23 @@ const LoginPage: React.FC = () => {
               </button>
             </>
           )}
+          */}
           
-          <div className="text-center">
+          <div style={{ textAlign: 'center' }}>
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-blue-600 hover:text-blue-500 text-sm font-medium"
+              style={{
+                color: 'var(--accent)',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+              onMouseOver={(e) => (e.target as HTMLButtonElement).style.color = 'color-mix(in srgb, var(--accent) 80%, black)'}
+              onMouseOut={(e) => (e.target as HTMLButtonElement).style.color = 'var(--accent)'}
             >
               {isLogin 
                 ? "Don't have an account? Sign up" 

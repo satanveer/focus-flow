@@ -184,6 +184,12 @@ html.dark [tabindex]:focus-visible::after {
 *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
 *::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
+/* Loading spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Glowing placeholder for custom focus minutes input */
 .focus-mins-input::placeholder {
 	color: var(--accent-accent3);

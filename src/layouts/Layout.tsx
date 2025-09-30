@@ -1,11 +1,13 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../contexts/AuthContext";
 import { TaskFocusBinder } from "../features/pomodoro/TaskFocusBinder";
 import { MiniTimerWidget } from "../features/pomodoro/MiniTimerWidget";
 
 export default function Layout() {
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const { logout } = useAuth();
   const location = useLocation();
 
   const links = [
@@ -130,6 +132,23 @@ export default function Layout() {
               >
                 {resolvedTheme === 'dark' ? 'Light' : 'Dark'}
               </button>
+              <button
+                style={{
+                  fontSize:'0.6rem',
+                  fontWeight:'500',
+                  padding:'0.375rem 0.625rem',
+                  borderRadius:'0.5rem',
+                  border:'1px solid color-mix(in srgb, var(--danger) 70%, transparent)',
+                  background:'color-mix(in srgb, var(--danger) 10%, transparent)',
+                  color:'var(--danger)',
+                  transition:'all 0.2s',
+                  cursor:'pointer'
+                }}
+                onClick={() => logout()}
+                title="Sign out"
+              >
+                Logout
+              </button>
             </div>
           </div>
           {/* Mobile slide-down menu */}
@@ -166,6 +185,30 @@ export default function Layout() {
                   >{l.label}</NavLink>
                   );
                 })}
+                {/* Mobile logout button */}
+                <button
+                  onClick={() => {
+                    setNavOpen(false);
+                    logout();
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding:'0.5rem 0.75rem',
+                    borderRadius:'0.5rem',
+                    fontSize:'0.7rem',
+                    fontWeight:'500',
+                    letterSpacing:'0.025em',
+                    background: 'transparent',
+                    color: 'var(--danger)',
+                    border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
+                    marginTop: '0.5rem',
+                    cursor: 'pointer',
+                    transition:'all 0.2s'
+                  }}
+                >
+                  Logout
+                </button>
               </div>
             </div>
           )}
