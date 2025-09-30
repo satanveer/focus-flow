@@ -51,21 +51,21 @@ export const TaskForm: React.FC = () => {
         <label htmlFor="task-desc">Description</label>
         <textarea id="task-desc" placeholder="Optional context" rows={3} value={description} onChange={e => setDescription(e.target.value)} />
       </div>
-      <div className="ff-row" style={{flexWrap:'wrap'}}>
-        <div className="field" style={{flex:'1 1 110px', minWidth:'110px'}}>
+      <div className="ff-stack" style={{gap:'.75rem'}}>
+        <div className="field" style={{width:'100%'}}>
           <label htmlFor="task-priority">Priority</label>
-          <select id="task-priority" value={priority} onChange={e => setPriority(e.target.value as TaskPriority)}>
+          <select id="task-priority" value={priority} onChange={e => setPriority(e.target.value as TaskPriority)} style={{width:'100%'}}>
             {priorities.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
-        <div className="field" style={{flex:'1 1 140px', minWidth:'140px'}}>
+        <div className="field" style={{width:'100%'}}>
           <label htmlFor="task-due">Due date</label>
-          <div className="ff-stack" style={{gap:'.25rem'}}>
+          <div className="ff-stack" style={{gap:'.35rem'}}>
             <div className="date-input">
               <span className="icon" aria-hidden="true">📅</span>
-              <input id="task-due" type="date" value={dueDate} onChange={e => validateDueDate(e.target.value)} />
+              <input id="task-due" type="date" value={dueDate} onChange={e => validateDueDate(e.target.value)} style={{width:'100%'}} />
             </div>
-            <div className="ff-row" style={{gap:'.4rem', flexWrap:'wrap'}}>
+            <div className="ff-row" style={{gap:'.4rem', flexWrap:'wrap', justifyContent:'center'}}>
               <QuickDateButton label="Today" onSelect={() => {
                 const d = new Date();
                 const iso = d.toISOString().slice(0,10);
@@ -82,9 +82,9 @@ export const TaskForm: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="field" style={{flex:'2 1 200px', minWidth:'180px'}}>
+        <div className="field" style={{width:'100%'}}>
           <label htmlFor="task-tags">Tags</label>
-          <input id="task-tags" placeholder="comma,separated" value={tags} onChange={e => setTags(e.target.value)} />
+          <input id="task-tags" placeholder="comma,separated" value={tags} onChange={e => setTags(e.target.value)} style={{width:'100%'}} />
         </div>
       </div>
       {error && <div className="inline-error">{error}</div>}

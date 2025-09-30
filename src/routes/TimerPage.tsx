@@ -263,16 +263,6 @@ export default function TimerPage() {
           {!!active && (
             <button type="button" className="btn danger" onClick={abort} aria-label="Abort session without saving">Abort</button>
           )}
-          {!active && (
-            <button type="button" className="btn subtle" style={{fontSize:'.6rem'}} onClick={() => {
-              // quick synthetic test: simulate a just-finished short focus session for side-effects
-              try {
-                // Use Notification API and audio helper indirectly by starting a 1s session and fast-forwarding
-                start({ mode:'focus', taskId: selectedTaskId, durationSec: 2 });
-                setTimeout(()=> complete(), 1200);
-              } catch {}
-            }} aria-label="Test alert sound and notification">Test Alert</button>
-          )}
         </div>
         {/* Configuration controls moved to Settings page */}
         <div className="card" style={{width:'100%', maxWidth:620, padding:'1.1rem 1.2rem 1.35rem', background:'var(--surface-1)', border:'1px solid var(--border)', boxShadow:'0 2px 4px -2px rgba(0,0,0,.4), 0 4px 12px -2px rgba(0,0,0,.25)'}}>
@@ -283,40 +273,54 @@ export default function TimerPage() {
             </span>
           </div>
           <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'.9rem'}}>
-            <div style={{display:'flex', flexDirection:'column', gap:'.5rem', alignItems:'center'}}>
-              <div style={{display:'flex', alignItems:'center', gap:'.5rem'}}>
-                <button type="button" className="btn subtle" style={{fontSize:'.6rem', padding:'.25rem .6rem'}} disabled={!!active} onClick={() => { const cur=Number(customInputRef.current?.value||0); if(cur>1 && customInputRef.current) customInputRef.current.value=String(cur-1); }}>-</button>
+            <div style={{display:'flex', flexDirection:'column', gap:'.5rem', alignItems:'center', width:'100%'}}>
+              <div style={{display:'flex', alignItems:'center', gap:'.5rem', justifyContent:'center', flexWrap:'wrap'}}>
+                <select
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && customInputRef.current) {
+                      customInputRef.current.value = val;
+                      if (val !== 'custom') {
+                        setSelectedPreset(Number(val));
+                        start({mode:'focus', taskId:selectedTaskId, durationSec: Number(val)*60});
+                      }
+                    }
+                  }}
+                  disabled={!!active}
+                  style={{
+                    fontSize:'.7rem', 
+                    padding:'.5rem .8rem', 
+                    border:'1px solid var(--border)', 
+                    borderRadius:'var(--radius-md)', 
+                    background:'var(--surface-2)',
+                    minWidth:'8rem'
+                  }}
+                  defaultValue=""
+                >
+                  <option value="">Quick Start</option>
+                  <option value="15">15 minutes</option>
+                  <option value="25">25 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="90">1.5 hours</option>
+                  <option value="120">2 hours</option>
+                  <option value="custom">Custom...</option>
+                </select>
+                <span style={{fontSize:'.6rem', color:'var(--text-muted)'}}>or</span>
                 <input
                   ref={customInputRef}
-                  placeholder="mins"
+                  placeholder="Minutes"
                   type="number"
                   min={1}
                   className="focus-mins-input"
-                  style={{width:'5rem', textAlign:'center', fontSize:'.7rem', padding:'.4rem .5rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--surface-2)', WebkitAppearance:'none'}}
+                  style={{width:'7rem', textAlign:'center', fontSize:'.7rem', padding:'.5rem .8rem', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'var(--surface-2)', WebkitAppearance:'none'}}
                   disabled={!!active && false}
                   onKeyDown={e=>{ if(e.key==='Enter'){ const val=Number((e.target as HTMLInputElement).value); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); } }}
                 />
-                <button type="button" className="btn subtle" style={{fontSize:'.6rem', padding:'.25rem .6rem'}} disabled={!!active} onClick={() => { const cur=Number(customInputRef.current?.value||0); const next=cur?cur+1:1; if(customInputRef.current) customInputRef.current.value=String(next); }}>+</button>
-                <button type="button" className="btn primary" style={{fontSize:'.6rem'}} disabled={!!active} onClick={()=>{ const val=Number(customInputRef.current?.value||0); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); }}>Start</button>
+                <button type="button" className="btn primary" style={{fontSize:'.7rem'}} disabled={!!active} onClick={()=>{ const val=Number(customInputRef.current?.value||0); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); }}>Start</button>
               </div>
-              <div style={{fontSize:'.5rem', color:'var(--text-muted)', textAlign:'center'}}>Enter minutes or use presets</div>
-            </div>
-            <div style={{width:'100%', display:'flex', justifyContent:'center'}}>
-              <div style={{display:'flex', flexWrap:'wrap', gap:'.45rem', justifyContent:'center', maxWidth:540}}>
-                {[5,10,15,20,25,30,35,40,45,50,55,60,70,80,90,100,120].map(p => {
-                  const activePreset = selectedPreset === p && !active;
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      disabled={!!active}
-                      className={`btn ${activePreset ? 'primary' : 'subtle'}`}
-                      style={{fontSize:'.55rem', padding:'.35rem .6rem'}}
-                      onClick={()=>{ if(customInputRef.current) customInputRef.current.value=String(p); setSelectedPreset(p); start({mode:'focus', taskId:selectedTaskId, durationSec:p*60}); }}
-                    >{p}m</button>
-                  );
-                })}
-              </div>
+              <div style={{fontSize:'.55rem', color:'var(--text-muted)', textAlign:'center'}}>Choose a preset or enter custom minutes</div>
             </div>
           </div>
         </div>

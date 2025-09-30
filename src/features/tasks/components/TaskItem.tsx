@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Trash2 } from 'lucide-react';
 import type { Task } from '../../../domain/models';
 import { useAppwriteTasksContext } from '../AppwriteTasksContext';
 import { usePomodoro } from '../../pomodoro/PomodoroContext';
@@ -77,63 +78,67 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
   }, [showNote]);
 
   return (
-    <li className="task-item" style={{position:'relative'}}>
-      <label className="chk" aria-label="Toggle complete">
-        <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} />
-        <span className="chk-box" aria-hidden="true" />
-      </label>
-      <div>
-        <div className="task-title-wrapper">
-          <button onClick={()=> setOpen(o=> !o)} className="task-title" style={{all:'unset', cursor:'pointer', fontWeight: task.completed ? 400:600, textDecoration: task.completed ? 'line-through':'none'}} aria-expanded={open} aria-controls={`task-focus-${task.id}`} aria-label={`${open? 'Collapse':'Expand'} focus history for task ${task.title}`}>
-            {task.title}
-          </button>{' '}
-          <span className={`badge dot priority-${task.priority}`}>{task.priority}</span>
-        </div>
-        {task.description && <div className="task-desc">{task.description}</div>}
-        <div className="task-meta">
-          {dueInfo(task)}
-          {task.tags.map(tag => <span key={tag} className="tag" style={{background:`hsl(${(tagColor(tag).match(/\d+/)||['0'])[0]} 70% 18%)`, borderColor: tagColor(tag), color: tagColor(tag)}}>{tag}</span>)}
-          {typeof task.focusSeconds === 'number' && task.focusSeconds > 0 && (
-            <span className="tag" style={{background:'var(--accent-accent2)', borderColor:'var(--accent-accent3)', color:'#fff'}} aria-label={`Focused ${Math.round(task.focusSeconds/60)} minutes total on this task`}>
-              <span aria-hidden="true">⏱ {Math.round(task.focusSeconds/60)}m</span>
-            </span>
-          )}
-        </div>
-        {open && (
-          <div id={`task-focus-${task.id}`} className="ff-stack" style={{gap:'.4rem', marginTop:'.5rem'}}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-              <span style={{fontSize:'.6rem', letterSpacing:'.1em', textTransform:'uppercase', color:'var(--text-muted)'}}>Focus History</span>
-              <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>{totalMinutes}m total</span>
-            </div>
-            {focusSessions.length === 0 && (
-              <div style={{fontSize:'.55rem', color:'var(--text-muted)'}}>No focus sessions yet.</div>
-            )}
-            {focusSessions.length > 0 && (
-              <ul style={{listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:'.25rem', maxHeight:'8rem', overflowY:'auto'}}>
-                {focusSessions.slice(0,15).map(s => {
-                  const mins = Math.round(s.durationSec/60);
-                  const start = new Date(s.startedAt);
-                  return (
-                    <li key={s.id} style={{display:'flex', gap:'.5rem', fontSize:'.55rem', alignItems:'center'}}>
-                      <span style={{color:'var(--text-primary)'}}>{mins}m</span>
-                      <span style={{color:'var(--text-muted)'}}>{start.toLocaleDateString(undefined,{month:'short', day:'numeric'})} {start.toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'})}</span>
-                    </li>
-                  );
-                })}
-              </ul>
+    <li className="task-item" style={{position:'relative', display:'flex', flexDirection:'column', gap:'.75rem', padding:'1rem'}}>
+      <div className="ff-row" style={{gap:'.75rem', alignItems:'flex-start'}}>
+        <label className="chk" aria-label="Toggle complete" style={{marginTop:'.1rem'}}>
+          <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} />
+          <span className="chk-box" aria-hidden="true" />
+        </label>
+        <div style={{flex:'1', minWidth:0}}>
+          <div className="task-title-wrapper">
+            <button onClick={()=> setOpen(o=> !o)} className="task-title" style={{all:'unset', cursor:'pointer', fontWeight: task.completed ? 400:600, textDecoration: task.completed ? 'line-through':'none', fontSize:'1rem', lineHeight:'1.3'}} aria-expanded={open} aria-controls={`task-focus-${task.id}`} aria-label={`${open? 'Collapse':'Expand'} focus history for task ${task.title}`}>
+              {task.title}
+            </button>{' '}
+            <span className={`badge dot priority-${task.priority}`}>{task.priority}</span>
+          </div>
+          {task.description && <div className="task-desc" style={{marginTop:'.25rem'}}>{task.description}</div>}
+          <div className="task-meta" style={{marginTop:'.5rem'}}>
+            {dueInfo(task)}
+            {task.tags.map(tag => <span key={tag} className="tag" style={{background:`hsl(${(tagColor(tag).match(/\d+/)||['0'])[0]} 70% 18%)`, borderColor: tagColor(tag), color: tagColor(tag)}}>{tag}</span>)}
+            {typeof task.focusSeconds === 'number' && task.focusSeconds > 0 && (
+              <span className="tag" style={{background:'var(--accent-accent2)', borderColor:'var(--accent-accent3)', color:'#fff'}} aria-label={`Focused ${Math.round(task.focusSeconds/60)} minutes total on this task`}>
+                <span aria-hidden="true">⏱ {Math.round(task.focusSeconds/60)}m</span>
+              </span>
             )}
           </div>
-        )}
+          {open && (
+            <div id={`task-focus-${task.id}`} className="ff-stack" style={{gap:'.4rem', marginTop:'.5rem'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <span style={{fontSize:'.6rem', letterSpacing:'.1em', textTransform:'uppercase', color:'var(--text-muted)'}}>Focus History</span>
+                <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>{totalMinutes}m total</span>
+              </div>
+              {focusSessions.length === 0 && (
+                <div style={{fontSize:'.55rem', color:'var(--text-muted)'}}>No focus sessions yet.</div>
+              )}
+              {focusSessions.length > 0 && (
+                <ul style={{listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:'.25rem', maxHeight:'8rem', overflowY:'auto'}}>
+                  {focusSessions.slice(0,15).map(s => {
+                    const mins = Math.round(s.durationSec/60);
+                    const start = new Date(s.startedAt);
+                    return (
+                      <li key={s.id} style={{display:'flex', gap:'.5rem', fontSize:'.55rem', alignItems:'center'}}>
+                        <span style={{color:'var(--text-primary)'}}>{mins}m</span>
+                        <span style={{color:'var(--text-muted)'}}>{start.toLocaleDateString(undefined,{month:'short', day:'numeric'})} {start.toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'})}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-      <div className="ff-row" style={{alignSelf:'flex-start', gap:'.3rem'}}>
-        <Link to={`/timer?taskId=${task.id}&autoStart=1`} className="btn primary" aria-label="Focus with Pomodoro">Focus</Link>
-        <button ref={anchorRef} className="btn subtle" aria-label={existingLinked? 'Open note for task':'Add note for task'} onClick={()=> {
+      <div className="ff-row" style={{gap:'.5rem', flexWrap:'wrap', justifyContent:'flex-end'}}>
+        <Link to={`/timer?taskId=${task.id}&autoStart=1`} className="btn primary" style={{fontSize:'.7rem', minWidth:'auto'}} aria-label="Focus with Pomodoro">Focus</Link>
+        <button ref={anchorRef} className="btn subtle" style={{fontSize:'.7rem', minWidth:'auto'}} aria-label={existingLinked? 'Open note for task':'Add note for task'} onClick={()=> {
           if(!existingLinked){
             createNote(task.title, null, '', task.id);
           }
           setShowNote(s=> !s);
         }}>{existingLinked? 'Note':'Add Note'}</button>
-        <button className="btn outline" onClick={() => removeTask(task.id)} aria-label="Delete task">Del</button>
+        <button className="btn outline" style={{fontSize:'.7rem', minWidth:'auto', color:'var(--danger)', borderColor:'var(--danger)'}} onClick={() => removeTask(task.id)} aria-label="Delete task">
+          <Trash2 size={14} />
+        </button>
       </div>
       {showNote && createPortal((
         <div

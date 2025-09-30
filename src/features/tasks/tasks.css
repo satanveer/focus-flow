@@ -52,7 +52,7 @@ textarea { resize: vertical; }
 
 .tasks-toolbar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 
-.task-item { display: grid; grid-template-columns: auto 1fr auto; gap: .9rem; padding: .75rem 1.05rem; position: relative; }
+.task-item { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; position: relative; }
 .task-item + .task-item { border-top: 1px solid var(--border); }
 .task-item:hover { background: var(--bg-alt); }
 .task-title { font-weight: 600; font-size: 1rem; line-height: 1.25; }
@@ -75,4 +75,14 @@ textarea { resize: vertical; }
 
 .empty-state { padding: 1.25rem; text-align: center; font-size: .85rem; color: var(--text-muted); letter-spacing:.03em; }
 
-@media (min-width: 800px) { .task-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start; } }
+@media (min-width: 800px) { 
+  .task-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start; } 
+}
+
+@media (max-width: 799px) {
+  .task-item { padding: .875rem; }
+  .task-meta { flex-wrap: wrap; }
+  .tag, .due-chip { font-size: .7rem; }
+  .btn { font-size: .75rem; padding: .65rem .8rem; }
+  .field input, .field select, .field textarea { font-size: .9rem; }
+}

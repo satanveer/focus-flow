@@ -260,8 +260,8 @@ html.dark .chk-box { background: var(--bg-alt); }
 .date-input input[type=date] { appearance:none; -webkit-appearance:none; font:inherit; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:.45rem .65rem .45rem 2.1rem; border-radius:8px; font-size:.6rem; letter-spacing:.03em; transition:border-color var(--transition), background var(--transition), color var(--transition); min-height:34px; }
 .date-input input[type=date]:hover { border-color: var(--accent); }
 .date-input input[type=date]:focus { border-color: var(--accent); box-shadow:0 0 0 1px var(--accent) inset, 0 0 0 3px hsl(221 83% 53% / .15); outline:none; }
-.date-input .icon { position:absolute; left:.6rem; width:1rem; height:1rem; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; pointer-events:none; color:var(--accent); filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
-html.dark .date-input .icon { color: var(--text); filter: drop-shadow(0 1px 1px rgba(255,255,255,.1)); }
+.date-input .icon { position:absolute; left:.6rem; width:1rem; height:1rem; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; pointer-events:none; color:#ffffff; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+html.dark .date-input .icon { color: #ffffff; filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
 html.dark .date-input input[type=date] { background:var(--bg-alt); }
 .date-input input[type=date]::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.75; filter: hue-rotate(10deg); }
 .date-input input[type=date]:hover::-webkit-calendar-picker-indicator { opacity:1; }

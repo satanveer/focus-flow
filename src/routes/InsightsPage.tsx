@@ -7,18 +7,6 @@ import {
   BarChart, Bar, CartesianGrid
 } from 'recharts';
 
-function buildCSV(rows: any[]) {
-  if (!rows.length) return '';
-  const headers = Object.keys(rows[0]);
-  const escape = (v: any) => {
-    if (v == null) return '';
-    const s = String(v);
-    if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  };
-  return [headers.join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))].join('\n');
-}
-
 type RangeMode = 'daily' | 'weekly' | 'monthly';
 
 export default function InsightsPage() {
@@ -55,21 +43,6 @@ export default function InsightsPage() {
     durationMin: Math.round(s.durationSec/60),
     taskId: s.taskId || '',
   })), [filteredSessions]);
-
-  const download = (data: string | Blob, filename: string) => {
-    const blob = typeof data === 'string' ? new Blob([data], { type: 'text/plain;charset=utf-8' }) : data;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    setTimeout(()=> URL.revokeObjectURL(url), 2000);
-  };
-
-  const handleExportJSON = () => {
-    download(JSON.stringify(exportRows, null, 2), `pomodoro-sessions-${new Date().toISOString().slice(0,10)}.json`);
-  };
-  const handleExportCSV = () => {
-    download(buildCSV(exportRows), `pomodoro-sessions-${new Date().toISOString().slice(0,10)}.csv`);
-  };
 
   // Helper for consistent local date key
   const dateKey = (d: Date) => [d.getFullYear(), (d.getMonth()+1).toString().padStart(2,'0'), d.getDate().toString().padStart(2,'0')].join('-');
@@ -228,21 +201,16 @@ export default function InsightsPage() {
       <header className="ff-stack" style={{gap:'.4rem'}}>
   <h1 style={{fontSize:'1.4rem', fontWeight:600}}>Insights</h1>
         <p style={{fontSize:'.75rem', color:'var(--text-muted)'}}>Analyze your focus performance across time ranges.</p>
-        <div className="ff-row" style={{gap:'.5rem', flexWrap:'wrap', alignItems:'center'}}>
-          <div className="ff-row" style={{gap:4, background:'var(--surface)', padding:4, border:'1px solid var(--border)', borderRadius:999}} aria-label="Select range">
-            {(['daily','weekly','monthly'] as RangeMode[]).map(mode => (
-              <button
-                key={mode}
-                onClick={()=> setRange(mode)}
-                className={`btn ${range===mode? 'primary':''}`}
-                style={{fontSize:'.55rem', padding:'.35rem .7rem', borderRadius:999}}
-                aria-pressed={range===mode}
-              >{mode.charAt(0).toUpperCase()+mode.slice(1)}</button>
-            ))}
-          </div>
-          <button className="btn primary" onClick={handleExportCSV} disabled={!exportRows.length} style={{fontSize:'.6rem'}}>Export CSV</button>
-          <button className="btn" onClick={handleExportJSON} disabled={!exportRows.length} style={{fontSize:'.6rem'}}>Export JSON</button>
-          {!exportRows.length && <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>No data in range</span>}
+        <div className="ff-row" style={{gap:4, background:'var(--surface)', padding:4, border:'1px solid var(--border)', borderRadius:999}} aria-label="Select range">
+          {(['daily','weekly','monthly'] as RangeMode[]).map(mode => (
+            <button
+              key={mode}
+              onClick={()=> setRange(mode)}
+              className={`btn ${range===mode? 'primary':''}`}
+              style={{fontSize:'.55rem', padding:'.35rem .7rem', borderRadius:999}}
+              aria-pressed={range===mode}
+            >{mode.charAt(0).toUpperCase()+mode.slice(1)}</button>
+          ))}
         </div>
       </header>
 
