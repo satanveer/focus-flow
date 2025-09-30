@@ -85,9 +85,13 @@
    netlify deploy --prod --dir=dist
    ```
    
-   **Static hosting:**
+   **Apache/Static hosting:**
    - Upload the `dist/` folder to your web server
+   - The included `.htaccess` file will handle SPA routing automatically
+   
+   **Other hosting platforms:**
    - Configure your server to serve `index.html` for all routes (SPA routing)
+   - See platform-specific configurations below
 
 ### 4. Post-Deployment Configuration
 
@@ -104,22 +108,8 @@
 
 ### Vercel Deployment
 
-1. **Create `vercel.json`:**
-   ```json
-   {
-     "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
-     "headers": [
-       {
-         "source": "/(.*)",
-         "headers": [
-           { "key": "X-Frame-Options", "value": "DENY" },
-           { "key": "X-Content-Type-Options", "value": "nosniff" },
-           { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-         ]
-       }
-     ]
-   }
-   ```
+1. **Configuration included:**
+   - `vercel.json` is already configured with SPA routing and security headers
 
 2. **Set environment variables in Vercel dashboard**
 
@@ -130,29 +120,30 @@
 
 ### Netlify Deployment
 
-1. **Create `_redirects` file in `public/`:**
-   ```
-   /*    /index.html   200
-   ```
+1. **Configuration included:**
+   - `public/_redirects` handles SPA routing
+   - `netlify.toml` includes build settings and security headers
 
-2. **Create `netlify.toml`:**
-   ```toml
-   [build]
-     command = "npm run build"
-     publish = "dist"
-   
-   [[headers]]
-     for = "/*"
-     [headers.values]
-       X-Frame-Options = "DENY"
-       X-Content-Type-Options = "nosniff"
-       Referrer-Policy = "strict-origin-when-cross-origin"
-   ```
-
-3. **Deploy:**
+2. **Deploy:**
    ```bash
    netlify deploy --prod --dir=dist
    ```
+
+### Apache/cPanel Hosting
+
+1. **Configuration included:**
+   - `public/.htaccess` handles SPA routing, security headers, and performance optimizations
+
+2. **Deploy:**
+   - Upload the contents of the `dist/` folder to your web server root
+   - The `.htaccess` file will be automatically copied and handle routing
+
+### Other Static Hosting (GitHub Pages, GitLab Pages, etc.)
+
+**Manual server configuration needed for SPA routing:**
+- Nginx: Add `try_files $uri $uri/ /index.html;` to your location block
+- Express.js: Use `app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist/index.html')))`
+- Firebase Hosting: Add `"rewrites": [{"source": "**", "destination": "/index.html"}]` to `firebase.json`
 
 ### Cloudflare Pages
 
@@ -222,7 +213,14 @@ Current optimized bundle sizes:
    - Check browser console for errors
    - Ensure Recharts is properly installed
 
-4. **Environment variables not working:**
+4. **404 errors on page reload:**
+   - Ensure SPA routing is configured on your hosting platform
+   - For Vercel: `vercel.json` should include rewrites
+   - For Netlify: `_redirects` file should be in place
+   - For Apache: `.htaccess` should include rewrite rules
+   - For other platforms: configure server to serve `index.html` for all routes
+
+5. **Environment variables not working:**
    - Ensure variables are prefixed with `VITE_` for client-side access
    - Restart dev server after adding new variables
    - Check hosting platform environment variable configuration

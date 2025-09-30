@@ -81,7 +81,6 @@ export default function TimerPage() {
 
   const customInputRef = useRef<HTMLInputElement | null>(null);
   const announcerRef = useRef<HTMLDivElement | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
 
   // Derived stats
   const elapsed = totalForMode - remaining;
@@ -281,7 +280,6 @@ export default function TimerPage() {
                     if (val && customInputRef.current) {
                       customInputRef.current.value = val;
                       if (val !== 'custom') {
-                        setSelectedPreset(Number(val));
                         start({mode:'focus', taskId:selectedTaskId, durationSec: Number(val)*60});
                       }
                     }
