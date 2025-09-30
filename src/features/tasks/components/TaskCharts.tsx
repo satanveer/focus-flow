@@ -2,7 +2,7 @@
 // Keeps transformations memoized to avoid re-renders unless tasks array changes.
 // If dataset grows large you could virtualize or bucket by week.
 import React, { useMemo, useEffect, useState } from 'react';
-import { useTasksContext } from '../TasksContext';
+import { useAppwriteTasksContext } from '../AppwriteTasksContext';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RTooltip,
   BarChart, Bar, XAxis, YAxis, AreaChart, Area, CartesianGrid, LabelList
@@ -35,7 +35,7 @@ function formatDateDay(dateISO: string) {
 }
 
 export const TaskCharts: React.FC = () => {
-  const { tasks } = useTasksContext();
+  const { tasks } = useAppwriteTasksContext();
   const [isMobile, setIsMobile] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   useEffect(()=> {

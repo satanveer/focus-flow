@@ -18,6 +18,8 @@ export default function SettingsPage() {
     enableNotifications,
     toggleSound,
     toggleNotifications,
+    showTimerInTab,
+    toggleTimerInTab,
     sessions,
   } = usePomodoro() as any;
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -103,6 +105,11 @@ export default function SettingsPage() {
           <span className="chk-box" aria-hidden="true" />
           <span>Desktop notification on session end</span>
         </label>
+        <label style={labelStyle} className="chk" aria-label="Show timer in browser tab">
+          <input type="checkbox" checked={showTimerInTab} onChange={toggleTimerInTab} />
+          <span className="chk-box" aria-hidden="true" />
+          <span>Show timer countdown in browser tab</span>
+        </label>
         <div style={{display:'flex', flexWrap:'wrap', gap:'.5rem', marginTop:'.25rem'}}>
           <button
             type="button"
@@ -118,7 +125,7 @@ export default function SettingsPage() {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sine';
-                const baseFreq = 880; // test tone
+                const baseFreq = 880; // A5 note frequency
                 osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
                 gain.gain.setValueAtTime(0.0001, ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.03);

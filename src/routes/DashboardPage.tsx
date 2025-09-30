@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, LabelList } from 'recharts';
 import FocusGoalBar from '../features/pomodoro/components/FocusGoalBar';
 import { usePomodoro } from '../features/pomodoro/PomodoroContext';
-import { useTasksContext } from '../features/tasks/TasksContext';
+import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
 import { Link } from 'react-router-dom';
 
 function format(seconds: number) {
@@ -12,7 +12,7 @@ function format(seconds: number) {
 }
 
 export default function DashboardPage() {
-    const { tasks, addTask } = useTasksContext();
+    const { tasks, addTask } = useAppwriteTasksContext();
     const { start, pause, resume, complete, abort, active, getRemaining, sessions, focusDurations } = usePomodoro() as any;
     const [selectedTaskId, setSelectedTaskId] = useState<string>('');
     const customInputRef = useRef<HTMLInputElement | null>(null);

@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useNotes } from '../features/notes/NotesContext';
-import { useTasksContext } from '../features/tasks/TasksContext';
+import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
 import { Modal } from '../components/Modal';
 
 const FolderIcon: React.FC<{open?: boolean}> = ({open}) => <span style={{marginRight:4}}>{open? '📂':'📁'}</span>;
 
 export default function NotesPage(){
   const { folders, notes, createFolder, renameFolder, deleteFolder, createNote, updateNote, deleteNote, moveNote, getFolderChildren, getNotesInFolder } = useNotes();
-  const { tasks } = useTasksContext();
+  const { tasks } = useAppwriteTasksContext();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);

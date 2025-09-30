@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Task } from '../../../domain/models';
-import { useTasksContext } from '../TasksContext';
+import { useAppwriteTasksContext } from '../AppwriteTasksContext';
 import { usePomodoro } from '../../pomodoro/PomodoroContext';
 import { Link } from 'react-router-dom';
 import { useNotes } from '../../notes/NotesContext';
@@ -28,7 +28,7 @@ function dueInfo(task: Task) {
 }
 
 export const TaskItem: React.FC<Props> = ({ task }) => {
-  const { toggleTask, removeTask } = useTasksContext();
+  const { toggleTask, removeTask } = useAppwriteTasksContext();
   const { sessions } = usePomodoro();
   const { createNote, notes, updateNote } = useNotes();
   const [showNote, setShowNote] = useState(false);

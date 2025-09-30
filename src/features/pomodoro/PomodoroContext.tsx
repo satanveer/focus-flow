@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useEffect, useRef } from 'react';
-import type { ID, PomodoroMode, PomodoroSession } from '../../domain/models';
+import type { ID, PomodoroMode, PomodoroSession, ProductivityRating } from '../../domain/models';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState';
 
 interface ActiveTimer {
@@ -24,6 +24,7 @@ interface PomodoroState {
   longBreakEvery: number; // how many focus sessions before a long break
   enableSound: boolean;
   enableNotifications: boolean;
+  showTimerInTab: boolean;
 }
 
 interface PomodoroContextValue extends PomodoroState {
@@ -32,6 +33,7 @@ interface PomodoroContextValue extends PomodoroState {
   resume: () => void;
   abort: () => void;
   complete: () => void; // force complete early
+  updateSessionProductivity: (sessionId: ID, rating: ProductivityRating) => void;
   getRemaining: () => number; // seconds
   updateDurations: (d: Partial<{ focus: number; shortBreak: number; longBreak: number }>) => void;
   toggleAutoStart: () => void;
@@ -40,6 +42,7 @@ interface PomodoroContextValue extends PomodoroState {
   updateLongBreakEvery: (n: number) => void;
   toggleSound: () => void;
   toggleNotifications: () => void;
+  toggleTimerInTab: () => void;
 }
 
 const DEFAULTS = { focus: 25 * 60, shortBreak: 5 * 60, longBreak: 15 * 60 };
@@ -58,6 +61,7 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     longBreakEvery: 4,
     enableSound: true,
     enableNotifications: false,
+    showTimerInTab: true,
   });
 
   const tickRef = useRef<number | null>(null);
@@ -230,6 +234,19 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const toggleSound = () => setState(s => ({ ...s, enableSound: !s.enableSound }));
   const toggleNotifications = () => setState(s => ({ ...s, enableNotifications: !s.enableNotifications }));
+  const toggleTimerInTab = () => setState(s => ({ ...s, showTimerInTab: !s.showTimerInTab }));
+  
+  const updateSessionProductivity = useCallback((sessionId: ID, rating: ProductivityRating) => {
+    setState(s => ({
+      ...s,
+      sessions: s.sessions.map(session => 
+        session.id === sessionId 
+          ? { ...session, productivityRating: rating }
+          : session
+      )
+    }));
+  }, []);
+  
   // Auto-request permission when enabling notifications
   useEffect(() => {
     if (state.enableNotifications && 'Notification' in window && Notification.permission === 'default') {
@@ -252,6 +269,8 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     updateLongBreakEvery,
     toggleSound,
     toggleNotifications,
+    toggleTimerInTab,
+    updateSessionProductivity,
   };
 
   return <PomodoroContext.Provider value={value}>{children}</PomodoroContext.Provider>;

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { usePomodoro } from '../features/pomodoro/PomodoroContext';
-import { useTasksContext } from '../features/tasks/TasksContext';
+import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
+import type { ProductivityRating } from '../domain/models';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
   BarChart, Bar, CartesianGrid
@@ -22,7 +23,7 @@ type RangeMode = 'daily' | 'weekly' | 'monthly';
 
 export default function InsightsPage() {
   const { sessions } = usePomodoro();
-  const { tasks } = useTasksContext();
+  const { tasks } = useAppwriteTasksContext();
   const [range, setRange] = useState<RangeMode>('weekly');
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -114,7 +115,29 @@ export default function InsightsPage() {
     const focusMinutes = focus.reduce((a,s)=> a + Math.round(s.durationSec/60), 0);
     const totalMinutes = filteredSessions.reduce((a,s)=> a + Math.round(s.durationSec/60), 0) || 1;
     const avgFocus = focusMinutes && focus.length ? (focusMinutes / focus.length) : 0;
-    const productivity = (focusMinutes / totalMinutes) * 100;
+    
+    // Calculate productivity based on user ratings for focus sessions
+    let productivity = 0;
+    const focusSessionsWithRatings = focus.filter(s => s.productivityRating);
+    
+    if (focusSessionsWithRatings.length > 0) {
+      // Use weighted scoring: Great=100, Some distractions=60, Unfocused=20
+      const ratingScores: Record<ProductivityRating, number> = {
+        'great': 100,
+        'some-distractions': 60,
+        'unfocused': 20
+      };
+      
+      const totalScore = focusSessionsWithRatings.reduce((sum, session) => {
+        return sum + (ratingScores[session.productivityRating as ProductivityRating] || 0);
+      }, 0);
+      
+      productivity = totalScore / focusSessionsWithRatings.length;
+    } else {
+      // Fallback to old calculation if no ratings available
+      productivity = (focusMinutes / totalMinutes) * 100;
+    }
+    
     let streak = 0; for(let i=filteredSessions.length-1;i>=0;i--){ if(filteredSessions[i].mode==='focus') streak++; else break; }
     return { focusMinutes, sessions: filteredSessions.length, avgFocus, productivity, streak, breakCount: breaks.length };
   }, [filteredSessions]);

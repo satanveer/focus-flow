@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { usePomodoro } from './PomodoroContext';
-import { useTasksContext } from '../tasks/TasksContext';
+import { useAppwriteTasksContext } from '../tasks/AppwriteTasksContext';
 
 // Watches pomodoro sessions and credits elapsed focus time to tasks.
 export function TaskFocusBinder() {
   const { sessions } = usePomodoro();
-  let tasksCtx: ReturnType<typeof useTasksContext> | null = null;
-  try { tasksCtx = useTasksContext(); } catch { /* provider not present on some early renders */ }
+  let tasksCtx: ReturnType<typeof useAppwriteTasksContext> | null = null;
+  try { tasksCtx = useAppwriteTasksContext(); } catch { /* provider not present on some early renders */ }
   const updateTask = tasksCtx?.updateTask;
   const tasks = tasksCtx?.tasks || [];
   const lastCount = useRef(0);

@@ -1,9 +1,9 @@
 import React from 'react';
-import { useTasksContext } from '../TasksContext';
+import { useAppwriteTasksContext } from '../AppwriteTasksContext';
 import { TaskItem } from './TaskItem';
 
 export const TaskList: React.FC = () => {
-  const { filteredTasks, clearCompleted, tasks } = useTasksContext();
+  const { filteredTasks, clearCompleted, tasks } = useAppwriteTasksContext();
   const hasCompleted = tasks.some(t => t.completed);
 
   if (filteredTasks.length === 0) {

@@ -20,6 +20,7 @@ export interface Task {
 // (Removed Habit interface after deprecating Habits feature)
 // export interface Habit { ... }
 export type PomodoroMode = 'focus' | 'shortBreak' | 'longBreak';
+export type ProductivityRating = 'great' | 'some-distractions' | 'unfocused';
 
 export interface PomodoroSession {
   id: ID;
@@ -30,6 +31,8 @@ export interface PomodoroSession {
   aborted?: boolean;
   /** Optional task this session was focusing on */
   taskId?: ID;
+  /** User's productivity rating for focus sessions */
+  productivityRating?: ProductivityRating;
 }
 
 export interface Note {

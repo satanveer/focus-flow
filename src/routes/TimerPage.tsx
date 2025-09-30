@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { usePomodoro } from '../features/pomodoro/PomodoroContext';
 import FocusGoalBar from '../features/pomodoro/components/FocusGoalBar';
-import { useTasksContext } from '../features/tasks/TasksContext';
+import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
 import { useSearchParams } from 'react-router-dom';
 import { useNotes } from '../features/notes/NotesContext';
+import type { ProductivityRating } from '../domain/models';
 
 function format(seconds: number) {
   const m = Math.floor(seconds / 60).toString().padStart(2,'0');
@@ -12,8 +13,8 @@ function format(seconds: number) {
 }
 
 export default function TimerPage() {
-  const { start, pause, resume, abort, complete, active, getRemaining, focusDurations, sessions, focusCycleCount, longBreakEvery } = usePomodoro() as any;
-  const { tasks } = useTasksContext();
+  const { start, pause, resume, abort, complete, active, getRemaining, focusDurations, sessions, focusCycleCount, longBreakEvery, updateSessionProductivity } = usePomodoro() as any;
+  const { tasks } = useAppwriteTasksContext();
   const { notes, createNote, updateNote } = useNotes();
   // Reflection prompt state
   const [pendingReflection, setPendingReflection] = useState<{taskId: string; sessionId: string} | null>(null);
@@ -365,6 +366,19 @@ export default function TimerPage() {
                   className="btn outline"
                   style={{justifyContent:'flex-start', fontSize:'.6rem'}}
                   onClick={()=> {
+                    // Map the label to productivity rating
+                    const ratingMap: Record<string, ProductivityRating> = {
+                      'Great focus': 'great',
+                      'Some distractions': 'some-distractions', 
+                      'Unfocused': 'unfocused'
+                    };
+                    const rating = ratingMap[label];
+                    
+                    // Update the session's productivity rating
+                    if (rating && pendingReflection?.sessionId) {
+                      updateSessionProductivity(pendingReflection.sessionId, rating);
+                    }
+                    
                     if(pendingReflection?.taskId){
                       let note = notes.find(n=> n.taskId===pendingReflection.taskId);
                       if(!note){

@@ -1,11 +1,11 @@
 import React from 'react';
-import { useTasksContext } from '../TasksContext';
+import { useAppwriteTasksContext } from '../AppwriteTasksContext';
 import type { TaskPriority } from '../../../domain/models';
 
 const allPriorities: TaskPriority[] = ['low', 'medium', 'high'];
 
 export const TaskFilters: React.FC = () => {
-  const { filters, setFilters, tasks } = useTasksContext();
+  const { filters, setFilters, tasks } = useAppwriteTasksContext();
   const tagSet = Array.from(new Set(tasks.flatMap(t => t.tags))).slice(0,40);
 
   function togglePriority(p: TaskPriority) {
