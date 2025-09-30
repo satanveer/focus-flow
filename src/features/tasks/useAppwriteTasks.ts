@@ -80,6 +80,7 @@ export function useAppwriteTasks() {
     title: string;
     description?: string;
     priority?: TaskPriority;
+    tags?: string[];
     dueDate?: Date;
   }) => {
     if (!user || !data.title?.trim()) {
@@ -95,7 +96,7 @@ export function useAppwriteTasks() {
         priority: data.priority || 'medium' as TaskPriority,
         completed: false,
         userId: user.$id,
-        tags: [],
+        tags: data.tags || [],
         dueDate: data.dueDate?.toISOString() || null,
         focusSeconds: 0,
       };
@@ -212,34 +213,67 @@ export function useAppwriteTasks() {
     }
   }, [user, state.tasks, setError]);
 
+  // Individual task actions
+  const toggleTask = useCallback(async (id: string) => {
+    const task = state.tasks.find(t => t.id === id);
+    if (task) {
+      await updateTask(id, { completed: !task.completed });
+    }
+  }, [state.tasks, updateTask]);
+
+  const removeTask = useCallback(async (id: string) => {
+    await deleteTask(id);
+  }, [deleteTask]);
+
+  // Filter functionality
+  const [filters, setFilters] = useState({
+    search: '',
+    priorities: [] as TaskPriority[],
+    status: 'all' as 'all' | 'completed' | 'pending',
+    hideCompleted: false,
+    tag: null as string | null,
+    quickFilter: null as string | null
+  });
+
   // Computed values
   const taskStats = useMemo(() => {
     const total = state.tasks.length;
     const completed = state.tasks.filter(task => task.completed).length;
     const pending = total - completed;
+    const completionRate = total === 0 ? 0 : completed / total;
+    const totalFocusSeconds = state.tasks.reduce((acc, t) => acc + (t.focusSeconds || 0), 0);
     
-    return { total, completed, pending };
+    return { total, completed, pending, completionRate, totalFocusSeconds };
   }, [state.tasks]);
 
-  const filteredTasks = useCallback((
-    searchTerm: string = '',
-    priority: TaskPriority | 'all' = 'all',
-    status: 'all' | 'completed' | 'pending' = 'all'
-  ) => {
+  // Filtered tasks using current filters
+  const getFilteredTasks = useCallback(() => {
     return state.tasks.filter(task => {
-      const matchesSearch = !searchTerm || 
-        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSearch = !filters.search || 
+        task.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+        (task.description && task.description.toLowerCase().includes(filters.search.toLowerCase()));
       
-      const matchesPriority = priority === 'all' || task.priority === priority;
+      const matchesPriority = filters.priorities.length === 0 || filters.priorities.includes(task.priority);
       
-      const matchesStatus = status === 'all' || 
-        (status === 'completed' && task.completed) ||
-        (status === 'pending' && !task.completed);
+      const matchesStatus = filters.status === 'all' || 
+        (filters.status === 'completed' && task.completed) ||
+        (filters.status === 'pending' && !task.completed);
       
-      return matchesSearch && matchesPriority && matchesStatus;
+      const matchesHideCompleted = !filters.hideCompleted || !task.completed;
+      
+      const matchesTag = !filters.tag || task.tags.includes(filters.tag);
+      
+      // Simple quickFilter implementation - you can customize this logic
+      const matchesQuickFilter = !filters.quickFilter || 
+        (filters.quickFilter === 'today' && task.dueDate && new Date(task.dueDate).toDateString() === new Date().toDateString()) ||
+        (filters.quickFilter === 'overdue' && task.dueDate && new Date(task.dueDate) < new Date() && !task.completed) ||
+        (filters.quickFilter === 'high' && task.priority === 'high');
+      
+      return matchesSearch && matchesPriority && matchesStatus && matchesHideCompleted && matchesTag && matchesQuickFilter;
     });
-  }, [state.tasks]);
+  }, [state.tasks, filters]);
+
+  const filteredTasks = useMemo(() => getFilteredTasks(), [getFilteredTasks]);
 
   // Load tasks when user changes
   useEffect(() => {
@@ -257,10 +291,18 @@ export function useAppwriteTasks() {
     addTask,
     updateTask,
     deleteTask,
+    toggleTask,
+    removeTask,
     toggleTasksCompletion,
     deleteCompletedTasks,
+    clearCompleted: deleteCompletedTasks, // Alias for compatibility
+    
+    // Filters
+    filters,
+    setFilters,
     
     // Computed
+    stats: taskStats,
     taskStats,
     filteredTasks,
     

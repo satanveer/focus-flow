@@ -20,7 +20,7 @@ export const TaskForm: React.FC = () => {
     const tagList = tags.split(',').map(t => t.trim()).filter(Boolean);
     // Simple duplicate prevention (same title case-insensitive not completed)
     // Could move to hook if needed for reuse
-    addTask({ title: trimmed, description: description.trim(), priority, tags: tagList, dueDate: dueDate || null });
+    addTask({ title: trimmed, description: description.trim(), priority, tags: tagList, dueDate: dueDate ? new Date(dueDate) : undefined });
     setTitle('');
     setDescription('');
     setPriority('medium');

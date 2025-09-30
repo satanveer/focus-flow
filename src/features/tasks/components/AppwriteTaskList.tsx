@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAppwriteTasksContext } from '../AppwriteTasksContext';
 import { TaskItem } from './TaskItem';
+import type { Task } from '../../../domain/models';
 
 export const AppwriteTaskList: React.FC = () => {
   const { filteredTasks, clearCompleted, tasks, loading, error } = useAppwriteTasksContext();
@@ -42,7 +43,7 @@ export const AppwriteTaskList: React.FC = () => {
         {hasCompleted && <button className="btn outline" onClick={clearCompleted}>Clear Completed</button>}
       </div>
       <ul className="list-shell" role="list">
-        {filteredTasks.map(t => <TaskItem key={t.id} task={t} />)}
+        {filteredTasks.map((t: Task) => <TaskItem key={t.id} task={t} />)}
       </ul>
     </div>
   );

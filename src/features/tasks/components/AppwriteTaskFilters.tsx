@@ -9,15 +9,16 @@ export const AppwriteTaskFilters: React.FC = () => {
   const tagSet = Array.from(new Set(tasks.flatMap(t => t.tags))).slice(0,40);
 
   function togglePriority(p: TaskPriority) {
-    setFilters({
-      priorities: filters.priorities.includes(p)
-        ? filters.priorities.filter(x => x !== p)
-        : [...filters.priorities, p]
-    });
+    setFilters(prev => ({
+      ...prev,
+      priorities: prev.priorities.includes(p)
+        ? prev.priorities.filter((x: TaskPriority) => x !== p)
+        : [...prev.priorities, p]
+    }));
   }
 
   function clearFilters() {
-    setFilters({ search: '', priorities: [], hideCompleted: false, tag: null, quickFilter: null });
+    setFilters({ search: '', priorities: [], status: 'all', hideCompleted: false, tag: null, quickFilter: null });
   }
 
   const hasActiveFilters = filters.search || filters.priorities.length || filters.hideCompleted || filters.tag || filters.quickFilter;
@@ -39,7 +40,7 @@ export const AppwriteTaskFilters: React.FC = () => {
           <input
             type="text"
             value={filters.search}
-            onChange={e => setFilters({ search: e.target.value })}
+            onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
             placeholder="Search tasks..."
             style={{fontSize:'.7rem'}}
             disabled={loading}
@@ -52,7 +53,7 @@ export const AppwriteTaskFilters: React.FC = () => {
               {(['today', 'high', 'focusHeavy'] as const).map(qf => (
                 <button
                   key={qf}
-                  onClick={() => setFilters({ quickFilter: filters.quickFilter === qf ? null : qf })}
+                  onClick={() => setFilters(prev => ({ ...prev, quickFilter: prev.quickFilter === qf ? null : qf }))}
                   className={`filter-chip ${filters.quickFilter === qf ? 'active' : ''}`}
                   disabled={loading}
                   style={{
@@ -103,7 +104,7 @@ export const AppwriteTaskFilters: React.FC = () => {
                 {tagSet.map(tag => (
                   <button
                     key={tag}
-                    onClick={() => setFilters({ tag: filters.tag === tag ? null : tag })}
+                    onClick={() => setFilters(prev => ({ ...prev, tag: prev.tag === tag ? null : tag }))}
                     className={`filter-chip ${filters.tag === tag ? 'active' : ''}`}
                     disabled={loading}
                     style={{
@@ -127,7 +128,7 @@ export const AppwriteTaskFilters: React.FC = () => {
             <input
               type="checkbox"
               checked={filters.hideCompleted}
-              onChange={e => setFilters({ hideCompleted: e.target.checked })}
+              onChange={e => setFilters(prev => ({ ...prev, hideCompleted: e.target.checked }))}
               disabled={loading}
             />
             Hide completed tasks

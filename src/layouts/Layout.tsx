@@ -26,64 +26,100 @@ export default function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-dvh flex flex-col">
-      <nav className="sticky top-0 z-50 px-3 pt-3">
-        <div className="relative rounded-2xl border border-[var(--border)] bg-[color:var(--bg-alt)/0.65] backdrop-blur-xl shadow-md ring-1 ring-black/5 dark:ring-white/10">
-          <div className="flex items-center gap-2 px-3 py-2 min-h-[3rem]" style={{position:'relative'}}>
+    <div style={{minHeight:'100dvh', display:'flex', flexDirection:'column'}}>
+      <nav style={{position:'sticky', top:0, zIndex:50, padding:'0.75rem', paddingBottom:0}}>
+        <div style={{position:'relative', borderRadius:'1rem', border:'1px solid var(--border)', background:'color-mix(in srgb, var(--bg-alt) 65%, transparent)', backdropFilter:'blur(12px)', boxShadow:'var(--shadow-md)'}}>
+          <div style={{display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.75rem', minHeight:'3rem', position:'relative'}}>
             <button
-              className="sm:hidden mr-1 text-[0.8rem] font-bold px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg)]/50 hover:bg-[var(--bg)]/80 transition"
+              style={{
+                marginRight:'0.25rem',
+                fontSize:'0.8rem',
+                fontWeight:'bold',
+                padding:'0.5rem',
+                borderRadius:'0.5rem',
+                border:'1px solid var(--border)',
+                background:'color-mix(in srgb, var(--bg) 50%, transparent)',
+                transition:'background 0.2s',
+                cursor:'pointer'
+              }}
+              className="mobile-nav-toggle"
               aria-label={navOpen? 'Close navigation':'Open navigation'}
               onClick={()=> setNavOpen(o=> !o)}
             >
               {navOpen? '✕':'☰'}
             </button>
-            <div className="flex items-center pr-2 mr-1 border-r border-[var(--border)]/60 select-none">
-              <span className="text-[0.8rem] font-extrabold tracking-wider bg-gradient-to-r from-[var(--accent)] via-[var(--accent-accent2)] to-[var(--accent-accent3)] text-transparent bg-clip-text">BobbyFlow</span>
+            <div style={{display:'flex', alignItems:'center', paddingRight:'0.5rem', marginRight:'0.25rem', borderRight:'1px solid color-mix(in srgb, var(--border) 60%, transparent)', userSelect:'none'}}>
+              <span style={{fontSize:'0.8rem', fontWeight:'800', letterSpacing:'0.05em', background:'linear-gradient(to right, var(--accent), var(--accent-accent2), var(--accent-accent3))', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent'}}>BobbyFlow</span>
             </div>
-            <div className="hidden sm:flex items-center gap-1 flex-wrap overflow-x-auto scrollbar-none [&_a]:no-underline [&_a:hover]:no-underline [&_a:visited]:no-underline">
-              {links.map((l) => (
+            <div style={{alignItems:'center', gap:'0.25rem', flexWrap:'wrap', overflowX:'auto'}} className="desktop-nav">
+              {links.map((l) => {
+                const isActive = l.end ? location.pathname === l.to : location.pathname.startsWith(l.to);
+                return (
                 <NavLink
                   key={l.to}
                   to={l.to}
                   end={l.end as any}
                   onClick={()=> setNavOpen(false)}
-                  className={({isActive}) => [
-                    'group relative px-4 py-2 text-[0.65rem] font-semibold tracking-wide rounded-xl whitespace-nowrap select-none no-underline',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
-                    'transition-colors duration-200',
-                    isActive ? 'text-[var(--accent-foreground)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                  ].join(' ')}
-                  data-active={location.pathname === l.to ? 'true':'false'}
+                  style={{
+                    position:'relative',
+                    padding:'0.5rem 1rem',
+                    fontSize:'0.65rem',
+                    fontWeight:'600',
+                    letterSpacing:'0.025em',
+                    borderRadius:'0.75rem',
+                    whiteSpace:'nowrap',
+                    userSelect:'none',
+                    textDecoration:'none',
+                    transition:'color 0.2s',
+                    color: isActive ? 'var(--accent-foreground)' : 'var(--text-muted)'
+                  }}
+                  className="nav-link"
+                  data-active={isActive ? 'true':'false'}
                 >
                   <span
-                    aria-hidden
-                    className={[
-                      'absolute inset-0 rounded-xl -z-10 overflow-hidden',
-                      'before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-[var(--accent)]/95 before:to-[var(--accent)]/70',
-                      'before:opacity-0 before:scale-75 before:blur-[1px] before:transition-all before:duration-400 before:ease-out',
-                      'group-hover:before:opacity-60 group-hover:before:scale-100 group-hover:before:blur-0',
-                      '[&[data-active=true]::before]:opacity-100 [&[data-active=true]::before]:scale-100',
-                      'motion-reduce:before:transition-none'
-                    ].join(' ')}
-                    data-active={location.pathname === l.to ? 'true':'false'}
+                    style={{
+                      position:'absolute',
+                      inset:0,
+                      borderRadius:'0.75rem',
+                      zIndex:-1,
+                      overflow:'hidden',
+                      background:'linear-gradient(to right, color-mix(in srgb, var(--accent) 95%, transparent), color-mix(in srgb, var(--accent) 70%, transparent))',
+                      opacity: isActive ? 1 : 0,
+                      transform: isActive ? 'scale(1)' : 'scale(0.75)',
+                      transition:'all 0.4s ease-out'
+                    }}
+                    data-active={isActive ? 'true':'false'}
                   />
                   <span
-                    aria-hidden
-                    className={[
-                      'absolute inset-0 -z-10 rounded-xl border border-transparent transition-colors duration-300',
-                      '[&[data-active=true]]:border-white/25 dark:[&[data-active=true]]:border-white/15',
-                      'group-hover:border-[var(--border)]/40'
-                    ].join(' ')}
-                    data-active={location.pathname === l.to ? 'true':'false'}
+                    style={{
+                      position:'absolute',
+                      inset:0,
+                      zIndex:-1,
+                      borderRadius:'0.75rem',
+                      border:'1px solid transparent',
+                      borderColor: isActive ? 'color-mix(in srgb, white 25%, transparent)' : 'transparent',
+                      transition:'border-color 0.3s'
+                    }}
+                    data-active={isActive ? 'true':'false'}
                   />
-                  <span className="relative z-10 tracking-wide">{l.label}</span>
+                  <span style={{position:'relative', zIndex:10, letterSpacing:'0.025em'}}>{l.label}</span>
                 </NavLink>
-              ))}
+                );
+              })}
             </div>
-            <div className="ml-auto flex items-center gap-2 pl-2">
+            <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:'0.5rem', paddingLeft:'0.5rem'}}>
               <MiniTimerWidget />
               <button
-                className="text-[0.6rem] font-medium px-2.5 py-1.5 rounded-lg border border-[var(--border)]/70 bg-[var(--bg)]/40 hover:bg-[var(--bg)]/70 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/70"
+                style={{
+                  fontSize:'0.6rem',
+                  fontWeight:'500',
+                  padding:'0.375rem 0.625rem',
+                  borderRadius:'0.5rem',
+                  border:'1px solid color-mix(in srgb, var(--border) 70%, transparent)',
+                  background:'color-mix(in srgb, var(--bg) 40%, transparent)',
+                  transition:'background 0.2s',
+                  cursor:'pointer'
+                }}
                 onClick={() => {
                   if (theme === 'system') {
                     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
@@ -98,27 +134,45 @@ export default function Layout() {
           </div>
           {/* Mobile slide-down menu */}
           {navOpen && (
-            <div className="sm:hidden border-t border-[var(--border)] px-3 pb-3 animate-in fade-in slide-in-from-top-2">
-              <div className="flex flex-col pt-2 gap-1">
-                {links.map(l => (
+            <div 
+              style={{
+                borderTop:'1px solid var(--border)', 
+                padding:'0 0.75rem 0.75rem',
+                display: 'block'
+              }} 
+              className="mobile-menu"
+            >
+              <div style={{display:'flex', flexDirection:'column', paddingTop:'0.5rem', gap:'0.25rem'}}>
+                {links.map(l => {
+                  const isActive = l.end ? location.pathname === l.to : location.pathname.startsWith(l.to);
+                  return (
                   <NavLink
                     key={l.to}
                     to={l.to}
                     end={l.end as any}
                     onClick={()=> setNavOpen(false)}
-                    className={({isActive}) => [
-                      'relative px-3 py-2 rounded-lg text-[0.7rem] font-medium tracking-wide',
-                      isActive ? 'bg-[var(--accent)] text-[var(--accent-foreground)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg)]/60 hover:text-[var(--text)]'
-                    ].join(' ')}
+                    style={{
+                      position:'relative',
+                      padding:'0.5rem 0.75rem',
+                      borderRadius:'0.5rem',
+                      fontSize:'0.7rem',
+                      fontWeight:'500',
+                      letterSpacing:'0.025em',
+                      textDecoration:'none',
+                      background: isActive ? 'var(--accent)' : 'transparent',
+                      color: isActive ? 'var(--accent-foreground)' : 'var(--text-muted)',
+                      transition:'all 0.2s'
+                    }}
                   >{l.label}</NavLink>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
-          <div className="pointer-events-none absolute inset-x-0 -bottom-6 h-6 bg-gradient-to-b from-black/10 dark:from-white/5 to-transparent opacity-40" />
+          <div style={{pointerEvents:'none', position:'absolute', left:0, right:0, bottom:'-1.5rem', height:'1.5rem', background:'linear-gradient(to bottom, color-mix(in srgb, black 10%, transparent), transparent)', opacity:0.4}} />
         </div>
       </nav>
-      <main className="flex-1 p-4">
+      <main style={{flex:1, padding:'1rem'}}>
         <TaskFocusBinder />
         <Outlet />
       </main>

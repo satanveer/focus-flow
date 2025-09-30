@@ -9,15 +9,16 @@ export const TaskFilters: React.FC = () => {
   const tagSet = Array.from(new Set(tasks.flatMap(t => t.tags))).slice(0,40);
 
   function togglePriority(p: TaskPriority) {
-    setFilters({
-      priorities: filters.priorities.includes(p)
-        ? filters.priorities.filter(x => x !== p)
-        : [...filters.priorities, p]
-    });
+    setFilters(prev => ({
+      ...prev,
+      priorities: prev.priorities.includes(p)
+        ? prev.priorities.filter((x: TaskPriority) => x !== p)
+        : [...prev.priorities, p]
+    }));
   }
 
   function clearFilters() {
-    setFilters({ search: '', priorities: [], hideCompleted: false, tag: null, quickFilter: null });
+    setFilters({ search: '', priorities: [], status: 'all', hideCompleted: false, tag: null, quickFilter: null });
   }
 
   return (
@@ -26,7 +27,7 @@ export const TaskFilters: React.FC = () => {
         <input
           placeholder="Search tasks..."
           value={filters.search}
-          onChange={e => setFilters({ search: e.target.value })}
+          onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
           style={{flex:2}}
           type="text"
         />
@@ -52,7 +53,7 @@ export const TaskFilters: React.FC = () => {
               <button
                 key={qf}
                 type="button"
-                onClick={() => setFilters({ quickFilter: active ? null : qf as any })}
+                onClick={() => setFilters(prev => ({ ...prev, quickFilter: active ? null : qf as any }))}
                 className={`btn ${active ? 'primary' : 'outline'}`}
                 style={{fontSize:'.6rem'}}
               >{label}</button>
@@ -62,7 +63,7 @@ export const TaskFilters: React.FC = () => {
             <input
               type="checkbox"
               checked={filters.hideCompleted}
-              onChange={e => setFilters({ hideCompleted: e.target.checked })}
+              onChange={e => setFilters(prev => ({ ...prev, hideCompleted: e.target.checked }))}
             />
             <span className="chk-box" aria-hidden="true" />
             <span>Hide completed</span>
@@ -80,7 +81,7 @@ export const TaskFilters: React.FC = () => {
                   className={`btn ${active ? 'primary':'subtle'}`}
                   style={{fontSize:'.55rem', padding:'.3rem .55rem'}}
                   aria-pressed={active || undefined}
-                  onClick={() => setFilters({ tag: active ? null : tag })}
+                  onClick={() => setFilters(prev => ({ ...prev, tag: active ? null : tag }))}
                 >{tag}</button>
               );
             })}

@@ -1,5 +1,40 @@
-@import "tailwindcss";
 @import "./theme.css";
+
+/* Navigation responsive styles */
+.mobile-nav-toggle {
+  display: none;
+}
+
+.desktop-nav {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .mobile-nav-toggle {
+    display: block !important;
+  }
+  
+  .desktop-nav {
+    display: none !important;
+  }
+}
+
+.nav-link:hover {
+  color: var(--text) !important;
+}
+
+.mobile-menu a:hover {
+  background: color-mix(in srgb, var(--bg) 60%, transparent) !important;
+  color: var(--text) !important;
+}
+
+.mobile-nav-toggle:hover {
+  background: color-mix(in srgb, var(--bg) 80%, transparent) !important;
+}
+
+button:hover {
+  background: color-mix(in srgb, var(--bg) 70%, transparent) !important;
+}
 
 /* Theme design tokens */
 :root {

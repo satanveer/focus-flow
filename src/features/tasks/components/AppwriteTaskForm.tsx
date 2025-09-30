@@ -29,7 +29,7 @@ export const AppwriteTaskForm: React.FC = () => {
         description: description.trim(), 
         priority, 
         tags: tagList, 
-        dueDate: dueDate || null 
+        dueDate: dueDate ? new Date(dueDate) : undefined 
       });
       
       // Clear form on success
