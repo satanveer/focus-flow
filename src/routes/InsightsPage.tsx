@@ -1,4 +1,4 @@
-import { useMemo, useState, lazy } from 'react';
+import { useMemo, useState } from 'react';
 import { usePomodoro } from '../features/pomodoro/PomodoroContext';
 import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
 import type { ProductivityRating } from '../domain/models';
@@ -6,10 +6,6 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
   BarChart, Bar, CartesianGrid
 } from 'recharts';
-
-// Lazy load chart components
-const TrendChart = lazy(() => import('../components/InsightsCharts').then(module => ({ default: module.TrendChart })));
-const WeeklyChart = lazy(() => import('../components/InsightsCharts').then(module => ({ default: module.WeeklyChart })));
 
 function buildCSV(rows: any[]) {
   if (!rows.length) return '';
