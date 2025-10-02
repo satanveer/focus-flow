@@ -100,35 +100,127 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const urlParams = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
       
-      // Check if this is an OAuth callback
+      // Enhanced OAuth callback detection
       const isOAuthCallback = 
         urlParams.has('state') || 
         urlParams.has('code') ||
         urlParams.has('userId') ||
         urlParams.has('secret') ||
         hash.includes('access_token') || 
+        hash.includes('oauth') ||
         document.referrer.includes('accounts.google.com') ||
-        document.referrer.includes('cloud.appwrite.io');
+        document.referrer.includes('cloud.appwrite.io') ||
+        window.location.href.includes('oauth') ||
+        window.location.href.includes('callback') ||
+        localStorage.getItem('oauth_flow_started') === 'true';
+      
+      console.log('OAuth callback check:', {
+        isOAuthCallback,
+        urlParams: Object.fromEntries(urlParams),
+        hash,
+        referrer: document.referrer,
+        currentUrl: window.location.href,
+        oauthFlowStarted: localStorage.getItem('oauth_flow_started')
+      });
       
       if (isOAuthCallback) {
-        // Check if OAuth created a session
-        try {
-          const session = await authService.checkActiveSession();
-          if (session) {
-            // OAuth session found, refresh user data
+        console.log('Detected OAuth callback, processing...');
+        
+        // Clear the OAuth flow flag
+        localStorage.removeItem('oauth_flow_started');
+        
+        // Check if we have OAuth token parameters (userId and secret)
+        const userId = urlParams.get('userId');
+        const secret = urlParams.get('secret');
+        
+        if (userId && secret) {
+          console.log('🔍 Found OAuth token parameters, creating session...');
+          try {
+            // Handle OAuth token directly
+            const user = await authService.handleOAuthTokenCallback(userId, secret);
+            if (user) {
+              console.log('🔍 OAuth token session created successfully');
+              setState(prev => ({
+                ...prev,
+                user,
+                isAuthenticated: true,
+                loading: false,
+              }));
+              
+              // Clean up URL parameters
+              const cleanUrl = window.location.origin + window.location.pathname;
+              window.history.replaceState({}, document.title, cleanUrl);
+              return;
+            }
+          } catch (error) {
+            console.error('🔍 OAuth token session creation failed:', error);
           }
-        } catch (error) {
-          console.error('No active session found after OAuth:', error);
         }
         
-        // Clean up URL parameters
+        // Clean up URL parameters first
         const cleanUrl = window.location.origin + window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
         
-        // Wait a bit longer for OAuth session to establish
-        setTimeout(async () => {
-          await refreshUser();
-        }, 2000);
+        // Wait a moment for the session to be established
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        try {
+          // Try to get the current user directly
+          const user = await authService.getCurrentUser();
+          console.log('OAuth user retrieved:', user);
+          
+          if (user) {
+            // Check if user settings exist, create if not
+            try {
+              await authService.handleOAuthCallback();
+              console.log('OAuth callback handled successfully');
+            } catch (error) {
+              console.log('Settings creation/check failed, but user exists:', error);
+            }
+            
+            setState(prev => ({
+              ...prev,
+              user,
+              isAuthenticated: true,
+              loading: false,
+            }));
+            return;
+          }
+        } catch (error) {
+          console.error('OAuth user retrieval failed:', error);
+        }
+        
+        // Fallback: retry a few times
+        let retries = 0;
+        const maxRetries = 5;
+        
+        const retryAuth = async () => {
+          try {
+            const user = await authService.getCurrentUser();
+            if (user) {
+              console.log('OAuth retry successful:', user);
+              setState(prev => ({
+                ...prev,
+                user,
+                isAuthenticated: true,
+                loading: false,
+              }));
+              return;
+            }
+          } catch (error) {
+            console.log(`OAuth retry ${retries + 1} failed:`, error);
+          }
+          
+          retries++;
+          if (retries < maxRetries) {
+            setTimeout(retryAuth, 2000);
+          } else {
+            console.log('OAuth retries exhausted, falling back to normal flow');
+            await refreshUser();
+          }
+        };
+        
+        setTimeout(retryAuth, 1000);
       } else {
         // Normal app initialization
         await refreshUser();
@@ -142,10 +234,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Set loading state before OAuth redirect
       setState(prev => ({ ...prev, loading: true }));
+      // Set a flag to help detect OAuth callback
+      localStorage.setItem('oauth_flow_started', 'true');
       await authService.loginWithGoogle();
       // Note: This won't execute as the page will redirect to Google
     } catch (error) {
       console.error('Google login error:', error);
+      localStorage.removeItem('oauth_flow_started');
       setState(prev => ({ ...prev, loading: false }));
       throw error;
     }
@@ -212,7 +307,7 @@ export const ProtectedRoute: React.FC<{
 
 // Simple Login/Register Component
 const LoginPage: React.FC = () => {
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -426,7 +521,6 @@ const LoginPage: React.FC = () => {
             {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
           </button>
 
-          {/* TODO: Re-enable Google Sign-in later
           {isLogin && (
             <>
               <div style={{ position: 'relative' }}>
@@ -459,7 +553,20 @@ const LoginPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => loginWithGoogle()}
+                onClick={async () => {
+                  try {
+                    console.log('🔍 Google sign-in button clicked');
+                    setLoading(true);
+                    setError(''); // Clear any previous errors
+                    console.log('🔍 Calling loginWithGoogle...');
+                    await loginWithGoogle();
+                    console.log('🔍 loginWithGoogle completed');
+                  } catch (error) {
+                    console.error('🔍 Google sign-in error:', error);
+                    setError('Google sign-in failed. Please try again.');
+                    setLoading(false);
+                  }
+                }}
                 disabled={loading}
                 style={{
                   width: '100%',
@@ -477,7 +584,7 @@ const LoginPage: React.FC = () => {
                   transition: 'background 0.2s',
                   opacity: loading ? 0.5 : 1
                 }}
-                onMouseOver={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--bg-alt)')}
+                onMouseOver={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--surface-2)')}
                 onMouseOut={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--bg)')}
               >
                 <svg style={{ width: '1.25rem', height: '1.25rem', marginRight: '0.5rem' }} viewBox="0 0 24 24">
@@ -502,7 +609,6 @@ const LoginPage: React.FC = () => {
               </button>
             </>
           )}
-          */}
           
           <div style={{ textAlign: 'center' }}>
             <button

@@ -123,11 +123,81 @@ export class AuthService {
 
   async loginWithGoogle() {
     try {
-      // Redirect to Google OAuth
+      console.log('🔍 Starting Google OAuth flow with token-based authentication...');
+      // Use token-based OAuth instead of session-based to avoid third-party cookie issues
       const redirectUrl = `${window.location.origin}`;
-      await account.createOAuth2Session(OAuthProvider.Google, redirectUrl, redirectUrl);
+      const failureUrl = `${window.location.origin}`;
+      console.log('🔍 Redirect URL:', redirectUrl);
+      console.log('🔍 Failure URL:', failureUrl);
+      console.log('🔍 About to call createOAuth2Token...');
+      await account.createOAuth2Token(OAuthProvider.Google, redirectUrl, failureUrl);
+      console.log('🔍 createOAuth2Token call completed');
     } catch (error) {
-      console.error('Google OAuth failed:', error);
+      console.error('🔍 Google OAuth failed:', error);
+      throw error;
+    }
+  }
+
+  async handleOAuthCallback() {
+    try {
+      console.log('Handling OAuth callback...');
+      // Get the current user after OAuth callback
+      const user = await this.getCurrentUser();
+      console.log('User from OAuth callback:', user);
+      
+      if (user) {
+        // Check if user settings exist
+        const settings = await databases.listDocuments(
+          APPWRITE_CONFIG.databaseId,
+          APPWRITE_CONFIG.collections.userSettings,
+          [Query.equal('userId', user.$id)]
+        );
+        
+        console.log('User settings check:', settings.documents.length);
+        
+        // Create default settings if they don't exist (new OAuth user)
+        if (settings.documents.length === 0) {
+          console.log('Creating default settings for new OAuth user');
+          await this.createDefaultUserSettings(user.$id);
+        }
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('OAuth callback handling failed:', error);
+      return null;
+    }
+  }
+
+  async handleOAuthTokenCallback(userId: string, secret: string) {
+    try {
+      console.log('🔍 Creating session from OAuth token...', { userId: userId.substring(0, 8) + '...', secret: secret.substring(0, 8) + '...' });
+      
+      // Create a session using the OAuth2 token
+      await account.createSession(userId, secret);
+      console.log('🔍 Session created successfully from OAuth token');
+      
+      // Get the current user
+      const user = await this.getCurrentUser();
+      console.log('🔍 User retrieved after token session creation:', user ? user.email : 'null');
+      
+      if (user) {
+        // Check if user settings exist and create default settings if needed
+        const settings = await databases.listDocuments(
+          APPWRITE_CONFIG.databaseId,
+          APPWRITE_CONFIG.collections.userSettings,
+          [Query.equal('userId', user.$id)]
+        );
+        
+        if (settings.documents.length === 0) {
+          console.log('🔍 Creating default settings for new OAuth user');
+          await this.createDefaultUserSettings(user.$id);
+        }
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('🔍 OAuth token callback handling failed:', error);
       throw error;
     }
   }
