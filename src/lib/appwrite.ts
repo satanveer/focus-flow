@@ -294,8 +294,21 @@ export class AuthService {
     try {
       const user = await account.get();
       return user;
-    } catch (error) {
-      console.log('getCurrentUser failed:', error);
+    } catch (error: any) {
+      // Handle specific 401 errors on production
+      if (error?.code === 401 || error?.message?.includes('missing scopes')) {
+        // Try to get session first, then user
+        try {
+          const session = await account.getSession('current');
+          if (session) {
+            const user = await account.get();
+            return user;
+          }
+        } catch (sessionError) {
+          // Session might be expired or invalid
+          return null;
+        }
+      }
       return null;
     }
   }
