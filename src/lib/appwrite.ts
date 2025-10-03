@@ -1,4 +1,4 @@
-import { Client, Account, Databases, Query, Permission, Role, ID } from 'appwrite';
+import { Client, Account, Databases, Query, Permission, Role, ID, OAuthProvider } from 'appwrite';
 // import type { Models } from 'appwrite'; // Unused import
 
 // Appwrite configuration
@@ -201,12 +201,16 @@ export class AuthService {
   async loginWithGoogle() {
     try {
       const redirectUrl = `${window.location.origin}/auth/callback`;
-      const failureUrl = `${window.location.origin}/login?error=oauth_failed`;
+      const failureUrl = `${window.location.origin}/?error=oauth_failed`;
       
       // Mark OAuth flow as started
       localStorage.setItem('oauth_flow_started', 'true');
       
-      await account.createOAuth2Session('google' as any, redirectUrl, failureUrl);
+      await account.createOAuth2Session({
+        provider: OAuthProvider.Google,
+        success: redirectUrl,
+        failure: failureUrl
+      });
     } catch (error) {
       localStorage.removeItem('oauth_flow_started');
       throw error;
