@@ -8,7 +8,20 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // For Appwrite OAuth2Session, check if user is authenticated
+        // Wait longer for OAuth session to be established
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Check if there are any URL parameters that might help
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        
+        if (error) {
+          // OAuth failed at Google level
+          window.location.href = `/?error=${error}`;
+          return;
+        }
+        
+        // Try to get the current user after OAuth callback
         const user = await authService.getCurrentUser();
         
         if (user) {
@@ -17,17 +30,27 @@ const AuthCallback: React.FC = () => {
           // Redirect to the main app
           window.location.href = '/';
         } else {
-          // No authenticated user, OAuth failed
-          window.location.href = '/?error=oauth_failed';
+          // Try to handle OAuth callback if no user yet
+          try {
+            const callbackUser = await authService.handleOAuthCallback();
+            if (callbackUser) {
+              await refreshUser();
+              window.location.href = '/';
+            } else {
+              window.location.href = '/?error=oauth_failed';
+            }
+          } catch (callbackError) {
+            console.error('OAuth callback handling failed:', callbackError);
+            window.location.href = '/?error=oauth_failed';
+          }
         }
       } catch (error) {
-        // OAuth callback error
+        console.error('OAuth callback error:', error);
         window.location.href = '/?error=oauth_error';
       }
     };
 
-    // Small delay to ensure OAuth session is established
-    setTimeout(handleCallback, 1000);
+    handleCallback();
   }, [refreshUser]);
 
   return (
