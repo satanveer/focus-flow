@@ -1,4 +1,4 @@
-import { Client, Account, Databases, Query, Permission, Role, ID, OAuthProvider } from 'appwrite';
+import { Client, Account, Databases, Query, Permission, Role, ID } from 'appwrite';
 // import type { Models } from 'appwrite'; // Unused import
 
 // Appwrite configuration
@@ -13,6 +13,9 @@ export const APPWRITE_CONFIG = {
     notes: import.meta.env.VITE_APPWRITE_NOTES_COLLECTION_ID || '',
     folders: import.meta.env.VITE_APPWRITE_FOLDERS_COLLECTION_ID || '',
     userSettings: import.meta.env.VITE_APPWRITE_SETTINGS_COLLECTION_ID || '',
+    calendarEvents: import.meta.env.VITE_APPWRITE_CALENDAR_EVENTS_COLLECTION_ID || '',
+    timeBlocks: import.meta.env.VITE_APPWRITE_TIME_BLOCKS_COLLECTION_ID || '',
+    productivityGoals: import.meta.env.VITE_APPWRITE_PRODUCTIVITY_GOALS_COLLECTION_ID || '',
   }
 };
 
@@ -89,7 +92,83 @@ export interface AppwriteUserSettings {
   enableSound: boolean;
   enableNotifications: boolean;
   showTimerInTab: boolean;
+  // Calendar settings
+  calendarDefaultView: 'month' | 'week' | 'day' | 'agenda';
+  calendarWeekStartsOnMonday: boolean;
+  calendarShowWeekends: boolean;
+  calendarDefaultFocusDuration: number;
+  calendarAutoScheduleTasks: boolean;
+  calendarReminderMinutes: number[];
+  calendarTimeZone: string;
   userId: string;
+  $updatedAt: string;
+}
+
+export interface AppwriteCalendarEvent {
+  $id: string;
+  title: string;
+  description?: string;
+  type: 'focus' | 'break' | 'task' | 'meeting' | 'personal' | 'goal';
+  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled' | 'missed';
+  
+  // Timing
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  
+  // Recurrence
+  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
+  recurrenceEndDate?: string;
+  recurrenceInterval: number;
+  recurrenceDaysOfWeek?: string;  // JSON string of number[]
+  recurrenceDayOfMonth?: number;
+  
+  // Relationships
+  taskId?: string;
+  pomodoroSessionId?: string;
+  parentEventId?: string;
+  
+  // Focus-specific fields
+  focusDuration?: number;
+  actualFocusTime?: number;
+  productivityRating?: 'great' | 'some-distractions' | 'unfocused';
+  goalMinutes?: number;
+  
+  // Metadata
+  color?: string;
+  location?: string;
+  attendees: string;    // JSON string of string[]
+  reminders: string;    // JSON string of number[]
+  tags: string;         // JSON string of string[]
+  
+  userId: string;
+  $createdAt: string;
+  $updatedAt: string;
+}
+
+export interface AppwriteTimeBlock {
+  $id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  type: 'focus' | 'break' | 'buffer';
+  taskIds: string;      // JSON string of string[]
+  color?: string;
+  flexible: boolean;
+  userId: string;
+  $createdAt: string;
+  $updatedAt: string;
+}
+
+export interface AppwriteProductivityGoal {
+  $id: string;
+  type: 'daily' | 'weekly' | 'monthly';
+  targetMinutes: number;
+  currentMinutes: number;
+  date: string;
+  achieved: boolean;
+  userId: string;
+  $createdAt: string;
   $updatedAt: string;
 }
 
@@ -107,7 +186,6 @@ export class AuthService {
       
       return user;
     } catch (error) {
-      console.error('Registration failed:', error);
       throw error;
     }
   }
@@ -116,34 +194,29 @@ export class AuthService {
     try {
       return await account.createEmailPasswordSession(email, password);
     } catch (error) {
-      console.error('Login failed:', error);
       throw error;
     }
   }
 
   async loginWithGoogle() {
     try {
-      console.log('🔍 Starting Google OAuth flow with token-based authentication...');
-      // Use token-based OAuth instead of session-based to avoid third-party cookie issues
-      const redirectUrl = `${window.location.origin}`;
-      const failureUrl = `${window.location.origin}`;
-      console.log('🔍 Redirect URL:', redirectUrl);
-      console.log('🔍 Failure URL:', failureUrl);
-      console.log('🔍 About to call createOAuth2Token...');
-      await account.createOAuth2Token(OAuthProvider.Google, redirectUrl, failureUrl);
-      console.log('🔍 createOAuth2Token call completed');
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      const failureUrl = `${window.location.origin}/login?error=oauth_failed`;
+      
+      // Mark OAuth flow as started
+      localStorage.setItem('oauth_flow_started', 'true');
+      
+      await account.createOAuth2Session('google' as any, redirectUrl, failureUrl);
     } catch (error) {
-      console.error('🔍 Google OAuth failed:', error);
+      localStorage.removeItem('oauth_flow_started');
       throw error;
     }
   }
 
   async handleOAuthCallback() {
     try {
-      console.log('Handling OAuth callback...');
       // Get the current user after OAuth callback
       const user = await this.getCurrentUser();
-      console.log('User from OAuth callback:', user);
       
       if (user) {
         // Check if user settings exist
@@ -153,19 +226,15 @@ export class AuthService {
           [Query.equal('userId', user.$id)]
         );
         
-        console.log('User settings check:', settings.documents.length);
-        
         // Create default settings if they don't exist (new OAuth user)
         if (settings.documents.length === 0) {
-          console.log('Creating default settings for new OAuth user');
           await this.createDefaultUserSettings(user.$id);
         }
       }
       
       return user;
     } catch (error) {
-      console.error('OAuth callback handling failed:', error);
-      return null;
+      throw error;
     }
   }
 
@@ -251,6 +320,14 @@ export class AuthService {
       enableSound: true,
       enableNotifications: false,
       showTimerInTab: true, // Default enabled
+      // Calendar defaults
+      calendarDefaultView: 'week',
+      calendarWeekStartsOnMonday: true,
+      calendarShowWeekends: true,
+      calendarDefaultFocusDuration: 1500, // 25 minutes
+      calendarAutoScheduleTasks: false,
+      calendarReminderMinutes: [15, 5],
+      calendarTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       userId,
     };
 
@@ -494,11 +571,176 @@ export class SettingsService {
   }
 }
 
+// Calendar service
+export class CalendarService {
+  async getEvents(userId: string, startDate?: string, endDate?: string): Promise<AppwriteCalendarEvent[]> {
+    try {
+      const queries = [
+        Query.equal('userId', userId),
+        Query.orderAsc('startTime'),
+        Query.limit(1000)
+      ];
+
+      if (startDate && endDate) {
+        queries.push(
+          Query.greaterThanEqual('startTime', startDate),
+          Query.lessThanEqual('startTime', endDate)
+        );
+      }
+
+      const response = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.calendarEvents,
+        queries
+      );
+      return response.documents as unknown as AppwriteCalendarEvent[];
+    } catch (error) {
+      console.error('Failed to fetch calendar events:', error);
+      throw error;
+    }
+  }
+
+  async createEvent(event: Omit<AppwriteCalendarEvent, '$id' | '$createdAt' | '$updatedAt'>) {
+    try {
+      return await databases.createDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.calendarEvents,
+        ID.unique(),
+        event,
+        getUserPermissions(event.userId)
+      ) as unknown as AppwriteCalendarEvent;
+    } catch (error) {
+      console.error('Failed to create calendar event:', error);
+      throw error;
+    }
+  }
+
+  async updateEvent(eventId: string, updates: Partial<AppwriteCalendarEvent>) {
+    try {
+      return await databases.updateDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.calendarEvents,
+        eventId,
+        updates
+      ) as unknown as AppwriteCalendarEvent;
+    } catch (error) {
+      console.error('Failed to update calendar event:', error);
+      throw error;
+    }
+  }
+
+  async deleteEvent(eventId: string) {
+    try {
+      return await databases.deleteDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.calendarEvents,
+        eventId
+      );
+    } catch (error) {
+      console.error('Failed to delete calendar event:', error);
+      throw error;
+    }
+  }
+
+  async getTimeBlocks(userId: string, date: string): Promise<AppwriteTimeBlock[]> {
+    try {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const response = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.timeBlocks,
+        [
+          Query.equal('userId', userId),
+          Query.greaterThanEqual('startTime', startOfDay.toISOString()),
+          Query.lessThanEqual('startTime', endOfDay.toISOString()),
+          Query.orderAsc('startTime')
+        ]
+      );
+      return response.documents as unknown as AppwriteTimeBlock[];
+    } catch (error) {
+      console.error('Failed to fetch time blocks:', error);
+      throw error;
+    }
+  }
+
+  async createTimeBlock(timeBlock: Omit<AppwriteTimeBlock, '$id' | '$createdAt' | '$updatedAt'>) {
+    try {
+      return await databases.createDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.timeBlocks,
+        ID.unique(),
+        timeBlock,
+        getUserPermissions(timeBlock.userId)
+      ) as unknown as AppwriteTimeBlock;
+    } catch (error) {
+      console.error('Failed to create time block:', error);
+      throw error;
+    }
+  }
+
+  async getProductivityGoals(userId: string, type?: 'daily' | 'weekly' | 'monthly'): Promise<AppwriteProductivityGoal[]> {
+    try {
+      const queries = [
+        Query.equal('userId', userId),
+        Query.orderDesc('date'),
+        Query.limit(100)
+      ];
+
+      if (type) {
+        queries.push(Query.equal('type', type));
+      }
+
+      const response = await databases.listDocuments(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.productivityGoals,
+        queries
+      );
+      return response.documents as unknown as AppwriteProductivityGoal[];
+    } catch (error) {
+      console.error('Failed to fetch productivity goals:', error);
+      throw error;
+    }
+  }
+
+  async createProductivityGoal(goal: Omit<AppwriteProductivityGoal, '$id' | '$createdAt' | '$updatedAt'>) {
+    try {
+      return await databases.createDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.productivityGoals,
+        ID.unique(),
+        goal,
+        getUserPermissions(goal.userId)
+      ) as unknown as AppwriteProductivityGoal;
+    } catch (error) {
+      console.error('Failed to create productivity goal:', error);
+      throw error;
+    }
+  }
+
+  async updateProductivityGoal(goalId: string, updates: Partial<AppwriteProductivityGoal>) {
+    try {
+      return await databases.updateDocument(
+        APPWRITE_CONFIG.databaseId,
+        APPWRITE_CONFIG.collections.productivityGoals,
+        goalId,
+        updates
+      ) as unknown as AppwriteProductivityGoal;
+    } catch (error) {
+      console.error('Failed to update productivity goal:', error);
+      throw error;
+    }
+  }
+}
+
 // Export service instances
 export const authService = new AuthService();
 export const taskService = new TaskService();
 export const pomodoroService = new PomodoroService();
 export const notesService = new NotesService();
 export const settingsService = new SettingsService();
+export const calendarService = new CalendarService();
 
 export { client };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePomodoro } from '../features/pomodoro/PomodoroContext';
 import { useTheme } from '../context/ThemeContext';
+import GoogleCalendarSettings from '../components/GoogleCalendarSettings';
 
 export default function SettingsPage() {
   const {
@@ -159,6 +160,11 @@ export default function SettingsPage() {
           >Test Notification</button>
         </div>
         <p style={hintStyle}>Notifications require permission from your browser / OS. Use the buttons to validate your settings.</p>
+      </section>
+
+      <section className="card ff-stack" style={{padding:'1rem', gap:'.75rem'}}>
+        <h2 style={{fontSize:'.8rem', letterSpacing:'.1em', textTransform:'uppercase', color:'var(--text-muted)'}}>Google Calendar Sync</h2>
+        <GoogleCalendarSettings />
       </section>
 
       <section className="card ff-stack" style={{padding:'1rem', gap:'.75rem'}}>

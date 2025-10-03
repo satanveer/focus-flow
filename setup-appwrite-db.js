@@ -1,10 +1,22 @@
 #!/usr/bin/env node
 
 /**
- * FocusFlow Appwrite Database Setup Script
- * 
+ * FocusFlow Appwrite Database Setup Scri      { key: 'priority', type: 'enum', elements: ['low', 'medium', 'high'], required: true },
+      { key: 'tags', type: 'string', size: 1000, required: false },
+      { key: 'dueDate', type: 'datetime', required: false },
+      { key: 'completed', type: 'boolean', required: true },
+      { key: 'focusSeconds', type: 'integer', required: true }, 
  * This script automatically creates all database collections, attributes, and indexes
- * for the FocusFlow application using the Appwrite Server SDK.
+ *      { key: 'title', type: 'string', size: 255, required: true },
+      { key: 'description', type: 'string', size: 2000, required: false },
+      { key: 'type', type: 'enum', elements: ['focus-session', 'break', 'task', 'meeting', 'reminder', 'custom'], required: true },
+      { key: 'status', type: 'enum', elements: ['scheduled', 'in-progress', 'completed', 'cancelled', 'missed'], required: true },
+      { key: 'startTime', type: 'datetime', required: true },
+      { key: 'endTime', type: 'datetime', required: true },
+      { key: 'allDay', type: 'boolean', required: true },
+      { key: 'recurrence', type: 'enum', elements: ['none', 'daily', 'weekly', 'monthly', 'custom'], required: true },
+      { key: 'recurrenceEndDate', type: 'datetime', required: false },
+      { key: 'recurrenceInterval', type: 'integer', required: false, default: 1 },ocusFlow application using the Appwrite Server SDK.
  * 
  * Usage:
  * 1. Install dependencies: npm install node-appwrite
@@ -137,19 +149,61 @@ const collections = {
     documentSecurity: true,
     enabled: true,
     attributes: [
-      { key: 'theme', type: 'enum', elements: ['light', 'dark', 'system'], required: true, default: 'system' },
-      { key: 'focusDuration', type: 'integer', required: true, default: 1500 },
-      { key: 'shortBreakDuration', type: 'integer', required: true, default: 300 },
-      { key: 'longBreakDuration', type: 'integer', required: true, default: 900 },
-      { key: 'autoStartNext', type: 'boolean', required: true, default: false },
-      { key: 'goalMinutes', type: 'integer', required: true, default: 120 },
-      { key: 'longBreakEvery', type: 'integer', required: true, default: 4 },
-      { key: 'enableSound', type: 'boolean', required: true, default: true },
-      { key: 'enableNotifications', type: 'boolean', required: true, default: false },
+      { key: 'theme', type: 'enum', elements: ['light', 'dark', 'system'], required: true },
+      { key: 'focusDuration', type: 'integer', required: true },
+      { key: 'shortBreakDuration', type: 'integer', required: true },
+      { key: 'longBreakDuration', type: 'integer', required: true },
+      { key: 'autoStartNext', type: 'boolean', required: true },
+      { key: 'goalMinutes', type: 'integer', required: true },
+      { key: 'longBreakEvery', type: 'integer', required: true },
+      { key: 'enableSound', type: 'boolean', required: true },
+      { key: 'enableNotifications', type: 'boolean', required: true },
       { key: 'userId', type: 'string', size: 36, required: true }
     ],
     indexes: [
       { key: 'user_settings_unique', type: 'unique', attributes: ['userId'] }
+    ]
+  },
+
+  calendar_events: {
+    collectionId: 'calendar_events',
+    name: 'Calendar Events',
+    permissions: ['read("users")', 'write("users")', 'create("users")', 'update("users")', 'delete("users")'],
+    documentSecurity: true,
+    enabled: true,
+    attributes: [
+      { key: 'title', type: 'string', size: 500, required: true },
+      { key: 'description', type: 'string', size: 2000, required: false },
+      { key: 'type', type: 'enum', elements: ['focus', 'break', 'task', 'meeting', 'personal', 'goal'], required: true },
+      { key: 'status', type: 'enum', elements: ['scheduled', 'in-progress', 'completed', 'cancelled', 'missed'], required: true, default: 'scheduled' },
+      { key: 'startTime', type: 'datetime', required: true },
+      { key: 'endTime', type: 'datetime', required: true },
+      { key: 'allDay', type: 'boolean', required: true, default: false },
+      { key: 'recurrence', type: 'enum', elements: ['none', 'daily', 'weekly', 'monthly', 'custom'], required: true, default: 'none' },
+      { key: 'recurrenceEndDate', type: 'datetime', required: false },
+      { key: 'recurrenceInterval', type: 'integer', required: false, default: 1 },
+      { key: 'recurrenceDaysOfWeek', type: 'string', size: 100, required: false },
+      { key: 'recurrenceDayOfMonth', type: 'integer', required: false },
+      { key: 'taskId', type: 'string', size: 36, required: false },
+      { key: 'pomodoroSessionId', type: 'string', size: 36, required: false },
+      { key: 'parentEventId', type: 'string', size: 36, required: false },
+      { key: 'focusDuration', type: 'integer', required: false },
+      { key: 'actualFocusTime', type: 'integer', required: false },
+      { key: 'productivityRating', type: 'enum', elements: ['great', 'some-distractions', 'unfocused'], required: false },
+      { key: 'goalMinutes', type: 'integer', required: false },
+      { key: 'color', type: 'string', size: 20, required: false },
+      { key: 'location', type: 'string', size: 500, required: false },
+      { key: 'attendees', type: 'string', size: 2000, required: false },
+      { key: 'reminders', type: 'string', size: 200, required: false },
+      { key: 'tags', type: 'string', size: 1000, required: false },
+      { key: 'userId', type: 'string', size: 36, required: true }
+    ],
+    indexes: [
+      { key: 'user_events', type: 'key', attributes: ['userId'] },
+      { key: 'user_type_events', type: 'key', attributes: ['userId', 'type'] },
+      { key: 'user_status_events', type: 'key', attributes: ['userId', 'status'] },
+      { key: 'user_start_time_events', type: 'key', attributes: ['userId', 'startTime'] },
+      { key: 'user_task_events', type: 'key', attributes: ['userId', 'taskId'] }
     ]
   }
 };
@@ -353,6 +407,7 @@ VITE_APPWRITE_POMODORO_COLLECTION_ID=pomodoro_sessions
 VITE_APPWRITE_NOTES_COLLECTION_ID=notes
 VITE_APPWRITE_FOLDERS_COLLECTION_ID=folders
 VITE_APPWRITE_SETTINGS_COLLECTION_ID=user_settings
+VITE_APPWRITE_CALENDAR_EVENTS_COLLECTION_ID=calendar_events
 
 # Server API Key (keep this secret, only for server-side operations)
 APPWRITE_API_KEY=${config.apiKey}

@@ -36,8 +36,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading: false,
       }));
     } catch (error) {
-      console.error('Auth check failed:', error);
-      
       // For OAuth callbacks, retry a few times as session might not be ready immediately
       if (retryCount < 5 && ((error as any)?.code === 401 || (error as any)?.message?.includes('missing scopes'))) {
         setTimeout(() => refreshUser(retryCount + 1), 2000);
@@ -84,7 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: false,
       });
     } catch (error) {
-      console.error('Logout error:', error);
       // Force logout on client side even if server request fails
       setState({
         user: null,
@@ -114,18 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         window.location.href.includes('callback') ||
         localStorage.getItem('oauth_flow_started') === 'true';
       
-      console.log('OAuth callback check:', {
-        isOAuthCallback,
-        urlParams: Object.fromEntries(urlParams),
-        hash,
-        referrer: document.referrer,
-        currentUrl: window.location.href,
-        oauthFlowStarted: localStorage.getItem('oauth_flow_started')
-      });
-      
       if (isOAuthCallback) {
-        console.log('Detected OAuth callback, processing...');
-        
         // Clear the OAuth flow flag
         localStorage.removeItem('oauth_flow_started');
         
@@ -134,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const secret = urlParams.get('secret');
         
         if (userId && secret) {
-          console.log('🔍 Found OAuth token parameters, creating session...');
           try {
             // Handle OAuth token directly
             const user = await authService.handleOAuthTokenCallback(userId, secret);
@@ -153,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return;
             }
           } catch (error) {
-            console.error('🔍 OAuth token session creation failed:', error);
+            // OAuth token session creation failed, fall back to regular OAuth
           }
         }
         
@@ -167,15 +152,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           // Try to get the current user directly
           const user = await authService.getCurrentUser();
-          console.log('OAuth user retrieved:', user);
           
           if (user) {
             // Check if user settings exist, create if not
             try {
               await authService.handleOAuthCallback();
-              console.log('OAuth callback handled successfully');
-            } catch (error) {
-              console.log('Settings creation/check failed, but user exists:', error);
+              // OAuth callback handled successfully
+            } catch (settingsError) {
+              // Settings creation/check failed, but user exists
             }
             
             setState(prev => ({

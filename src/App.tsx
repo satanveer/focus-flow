@@ -2,11 +2,13 @@ import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import DashboardPage from "./routes/DashboardPage";
 import AppwriteTasksPage from "./routes/AppwriteTasksPage";
+import CalendarPage from "./routes/CalendarPage";
 import TimerPage from "./routes/TimerPage";
 import NotesPage from "./routes/NotesPage";
 import InsightsPage from "./routes/InsightsPage";
 import SettingsPage from "./routes/SettingsPage";
 import AuthCallback from "./routes/AuthCallback";
+import GoogleCalendarCallback from "./routes/GoogleCalendarCallback";
 import Layout from "./layouts/Layout";
 import { PomodoroProvider } from './features/pomodoro/PomodoroContext';
 import TabTitleUpdater from './components/TabTitleUpdater';
@@ -20,21 +22,23 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* OAuth callback route - outside of ProtectedRoute */}
+        {/* OAuth callback routes - outside of ProtectedRoute */}
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/google-calendar" element={<GoogleCalendarCallback />} />
         
         {/* Protected routes */}
         <Route path="/*" element={
           <ProtectedRoute>
-            <CalendarProvider>
-              <PomodoroProvider>
-                <TabTitleUpdater />
-                <AppwriteTasksProvider>
+            <AppwriteTasksProvider>
+              <CalendarProvider>
+                <PomodoroProvider>
+                  <TabTitleUpdater />
                   <NotesProvider>
                     <Routes>
                       <Route element={<Layout/>}>
                         <Route index element={<DashboardPage />} />
                         <Route path="tasks" element={<AppwriteTasksPage />} />
+                        <Route path="calendar" element={<CalendarPage />} />
                         <Route path="timer" element={<TimerPage />} />
                         <Route path="notes" element={<NotesPage />} />
                         <Route path="insights" element={<InsightsPage />} />
@@ -42,9 +46,9 @@ function App() {
                       </Route>
                     </Routes>
                   </NotesProvider>
-                </AppwriteTasksProvider>
-              </PomodoroProvider>
-            </CalendarProvider>
+                </PomodoroProvider>
+              </CalendarProvider>
+            </AppwriteTasksProvider>
           </ProtectedRoute>
         } />
       </Routes>

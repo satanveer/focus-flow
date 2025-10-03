@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useCallback, useEffect, useRef } from 'react';
 import type { ID, PomodoroMode, PomodoroSession, ProductivityRating } from '../../domain/models';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState';
+import { googleCalendarService } from '../../lib/googleCalendar';
+import { useTasksContext } from '../tasks/TasksContext';
 
 interface ActiveTimer {
   sessionId: ID;
@@ -64,10 +66,20 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     showTimerInTab: true,
   });
 
+  // Try to get tasks context, but handle case where it might not be available
+  let tasks: any[] = [];
+  try {
+    const tasksContext = useTasksContext();
+    tasks = tasksContext.tasks || [];
+  } catch (error) {
+    // TasksContext not available yet, use empty array
+    console.warn('TasksContext not available, using empty tasks array');
+  }
+
   const tickRef = useRef<number | null>(null);
 
   // Side-effect helper: play sound & show notification when a session (focus or break) ends
-  const fireSessionEndEffects = useCallback((s: PomodoroState, mode: PomodoroMode) => {
+  const fireSessionEndEffects = useCallback((s: PomodoroState, mode: PomodoroMode, sessionData?: { sessionId: string; startedAt: string; durationSec: number; taskId?: string }, skipGoogleCalendarLogging = false) => {
     try {
       if (s.enableSound) {
         const AudioCtx: any = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -95,10 +107,95 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           Notification.requestPermission();
         }
       }
+
+      // Log to Google Calendar if authenticated and session data is provided (and not skipped to prevent duplicates)
+      if (sessionData && !skipGoogleCalendarLogging) {
+        console.log('🔍 Checking Google Calendar logging conditions:');
+        console.log('- sessionData:', sessionData);
+        console.log('- skipGoogleCalendarLogging:', skipGoogleCalendarLogging);
+        console.log('- googleCalendarService.isAuthenticated():', googleCalendarService.isAuthenticated());
+        console.log('- Access token exists:', !!localStorage.getItem('google_calendar_token'));
+        console.log('- Refresh token exists:', !!localStorage.getItem('google_calendar_refresh_token'));
+        
+        // Create a more robust session key using multiple identifiers
+        const sessionKey = `${sessionData.sessionId}-${sessionData.startedAt}-${sessionData.durationSec}-${sessionData.taskId || 'no-task'}`;
+        
+        // Check if this session has already been logged
+        const loggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
+        
+        if (loggedSessions.includes(sessionKey)) {
+          console.log('❌ Session already logged, skipping:', sessionKey);
+          return;
+        }
+
+        // Add to logged sessions immediately to prevent race conditions
+        const updatedLoggedSessions = [...loggedSessions, sessionKey];
+        localStorage.setItem('logged_sessions', JSON.stringify(updatedLoggedSessions));
+        
+        if (googleCalendarService.isAuthenticated()) {
+          console.log('✅ Google Calendar authenticated, attempting to log session');
+          console.log('- Mode is focus?', mode === 'focus');
+          
+          const startTime = new Date(sessionData.startedAt);
+          const endTime = new Date(startTime.getTime() + sessionData.durationSec * 1000);
+          
+          console.log('- Start time:', startTime.toISOString());
+          console.log('- End time:', endTime.toISOString());
+          console.log('- Duration (seconds):', sessionData.durationSec);
+          
+          // Get actual task title if taskId is provided
+          let taskTitle: string | undefined;
+          if (sessionData.taskId) {
+            const task = tasks.find(t => t.id === sessionData.taskId);
+            taskTitle = task ? task.title : sessionData.taskId; // Fallback to ID if task not found
+            console.log('- taskTitle:', taskTitle);
+          }
+          
+          if (mode === 'focus') {
+            console.log('🎯 Logging focus session to Google Calendar...');
+            try {
+              const eventData = googleCalendarService.createFocusSessionEvent({
+                startTime,
+                endTime,
+                duration: sessionData.durationSec,
+                taskTitle
+              });
+              console.log('- Event data created:', eventData);
+              
+              googleCalendarService.createEvent(eventData).then(result => {
+                console.log('✅ Focus session logged successfully to Google Calendar:', result);
+              }).catch(error => {
+                console.error('❌ Failed to log focus session to Google Calendar:', error);
+                console.error('- Error details:', error.message);
+                console.error('- Error stack:', error.stack);
+                // Remove from logged sessions if logging failed
+                const failedLoggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
+                const filteredSessions = failedLoggedSessions.filter((key: string) => key !== sessionKey);
+                localStorage.setItem('logged_sessions', JSON.stringify(filteredSessions));
+              });
+            } catch (error) {
+              console.error('❌ Error creating event data:', error);
+            }
+          }
+          // Note: We could add break session logging here if needed in the future
+        } else {
+          console.log('❌ Google Calendar not authenticated');
+          console.log('- Removing session from logged list due to no auth');
+          // Remove from logged sessions if not authenticated
+          const notAuthLoggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
+          const filteredSessions = notAuthLoggedSessions.filter((key: string) => key !== sessionKey);
+          localStorage.setItem('logged_sessions', JSON.stringify(filteredSessions));
+        }
+      } else {
+        console.log('❌ Session logging skipped:', {
+          hasSessionData: !!sessionData,
+          skipGoogleCalendarLogging
+        });
+      }
     } catch {
       // swallow errors silently (audio/notification failures)
     }
-  }, []);
+  }, [tasks]);
 
   const clearTick = () => { if (tickRef.current) cancelAnimationFrame(tickRef.current); tickRef.current = null; };
 
@@ -150,7 +247,7 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               };
             }
           // Fire side-effects after state update (sound/notification)
-          queueMicrotask(() => fireSessionEndEffects(s, mode));
+          queueMicrotask(() => fireSessionEndEffects(s, mode, { sessionId, startedAt, durationSec, taskId }));
           return {
             ...s,
             active,
@@ -207,8 +304,8 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const session: PomodoroSession = { id: sessionId, mode, startedAt, durationSec: credited, endedAt: new Date().toISOString(), taskId, aborted: false };
     let focusCycleCount = s.focusCycleCount;
     if (mode === 'focus') focusCycleCount += 1;
-    // Side effects for manual completion too
-    queueMicrotask(() => fireSessionEndEffects(s, mode));
+    // Side effects for manual completion too (but skip Google Calendar logging to prevent duplicates)
+    queueMicrotask(() => fireSessionEndEffects(s, mode, { sessionId, startedAt, durationSec: credited, taskId }, true));
     return { ...s, active: undefined, sessions: [...s.sessions, session], focusCycleCount };
   });
 

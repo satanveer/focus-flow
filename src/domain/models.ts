@@ -14,7 +14,9 @@ export interface Task {
   createdAt: string;            
   updatedAt: string;            
   /** Total focused (Pomodoro) seconds accumulated */
-  focusSeconds?: number;        
+  focusSeconds?: number;
+  /** Optional calendar event ID if task is scheduled */
+  calendarEventId?: string;
 }
 
 // (Removed Habit interface after deprecating Habits feature)
@@ -33,6 +35,8 @@ export interface PomodoroSession {
   taskId?: ID;
   /** User's productivity rating for focus sessions */
   productivityRating?: ProductivityRating;
+  /** Optional calendar event that triggered this session */
+  calendarEventId?: string;
 }
 
 export interface Note {
@@ -52,6 +56,80 @@ export interface Folder {
   createdAt: string;
 }
 
+// Calendar Event Types
+export type CalendarEventType = 'focus' | 'break' | 'task' | 'meeting' | 'personal' | 'goal';
+export type CalendarEventStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled' | 'missed';
+export type RecurrencePattern = 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
+
+export interface CalendarEvent {
+  id: ID;
+  title: string;
+  description?: string;
+  type: CalendarEventType;
+  status: CalendarEventStatus;
+  
+  // Timing
+  startTime: string;  // ISO datetime
+  endTime: string;    // ISO datetime
+  allDay: boolean;
+  
+  // Recurrence
+  recurrence: RecurrencePattern;
+  recurrenceEndDate?: string;
+  recurrenceData?: {
+    interval: number;  // every N days/weeks/months
+    daysOfWeek?: number[];  // for weekly: [0,1,2,3,4,5,6]
+    dayOfMonth?: number;    // for monthly
+  };
+  
+  // Relationships
+  taskId?: ID;           // linked task
+  pomodoroSessionId?: ID; // linked session
+  parentEventId?: ID;     // for recurring events
+  
+  // Focus-specific fields
+  focusDuration?: number;     // planned focus time in seconds
+  actualFocusTime?: number;   // actual time spent
+  productivityRating?: ProductivityRating;
+  goalMinutes?: number;       // daily/session goal
+  
+  // Metadata
+  color?: string;     // hex color for display
+  location?: string;
+  attendees?: string[];
+  reminders?: number[]; // minutes before event
+  tags: string[];
+  
+  // Time tracking
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CalendarView {
+  type: 'month' | 'week' | 'day' | 'agenda';
+  date: string;  // current viewing date
+}
+
+export interface TimeBlock {
+  id: ID;
+  title: string;
+  startTime: string;
+  endTime: string;
+  type: 'focus' | 'break' | 'buffer';
+  taskIds: ID[];
+  color?: string;
+  flexible: boolean;  // can be moved/adjusted
+}
+
+export interface ProductivityGoal {
+  id: ID;
+  type: 'daily' | 'weekly' | 'monthly';
+  targetMinutes: number;
+  currentMinutes: number;
+  date: string;  // goal period start date
+  achieved: boolean;
+}
+
 export interface PomodoroDurations {
   focus: number;      
   shortBreak: number;
@@ -62,6 +140,16 @@ export interface Settings {
   theme: 'light' | 'dark' | 'system';
   pomodoroDurations: PomodoroDurations;
   autoStartNext: boolean;
+  // Calendar settings
+  calendar: {
+    defaultView: CalendarView['type'];
+    weekStartsOnMonday: boolean;
+    showWeekends: boolean;
+    defaultFocusDuration: number;
+    autoScheduleTasks: boolean;
+    reminderMinutes: number[];
+    timeZone: string;
+  };
 }
 
 export interface AppStateSnapshot {
@@ -69,5 +157,8 @@ export interface AppStateSnapshot {
   pomodoroSessions: PomodoroSession[];
   notes: Note[];
   folders: Folder[];
+  calendarEvents: CalendarEvent[];
+  timeBlocks: TimeBlock[];
+  productivityGoals: ProductivityGoal[];
   settings: Settings;
 }

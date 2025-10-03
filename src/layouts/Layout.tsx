@@ -13,6 +13,7 @@ export default function Layout() {
   const links = [
     { to: '/', label: 'Dashboard', end: true },
     { to: '/tasks', label: 'Tasks' },
+    { to: '/calendar', label: 'Calendar' },
     { to: '/timer', label: 'Timer' },
     { to: '/notes', label: 'Notes' },
     { to: '/insights', label: 'Insights' },
