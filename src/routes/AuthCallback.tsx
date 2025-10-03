@@ -13,28 +13,23 @@ const AuthCallback: React.FC = () => {
         const userId = urlParams.get('userId');
         const secret = urlParams.get('secret');
 
-        console.log('🔍 OAuth callback received:', { userId: userId?.substring(0, 8) + '...', secret: secret?.substring(0, 8) + '...' });
-
         if (userId && secret) {
           // Handle the OAuth token callback
           const user = await authService.handleOAuthTokenCallback(userId, secret);
           
           if (user) {
-            console.log('🔍 OAuth token authentication successful, redirecting...');
             // Refresh the user state in the app
             await refreshUser();
             // Redirect to the main app
             window.location.href = '/';
           } else {
-            console.error('🔍 OAuth token authentication failed');
             window.location.href = '/?error=oauth_failed';
           }
         } else {
-          console.error('🔍 Missing userId or secret in OAuth callback');
-          window.location.href = '/?error=oauth_invalid';
+          // Missing OAuth parameters, redirect to login
+          window.location.href = '/?error=missing_params';
         }
       } catch (error) {
-        console.error('🔍 OAuth callback error:', error);
         window.location.href = '/?error=oauth_error';
       }
     };

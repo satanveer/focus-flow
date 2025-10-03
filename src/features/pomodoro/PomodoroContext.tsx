@@ -110,13 +110,6 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Log to Google Calendar if authenticated and session data is provided (and not skipped to prevent duplicates)
       if (sessionData && !skipGoogleCalendarLogging) {
-        console.log('🔍 Checking Google Calendar logging conditions:');
-        console.log('- sessionData:', sessionData);
-        console.log('- skipGoogleCalendarLogging:', skipGoogleCalendarLogging);
-        console.log('- googleCalendarService.isAuthenticated():', googleCalendarService.isAuthenticated());
-        console.log('- Access token exists:', !!localStorage.getItem('google_calendar_token'));
-        console.log('- Refresh token exists:', !!localStorage.getItem('google_calendar_refresh_token'));
-        
         // Create a more robust session key using multiple identifiers
         const sessionKey = `${sessionData.sessionId}-${sessionData.startedAt}-${sessionData.durationSec}-${sessionData.taskId || 'no-task'}`;
         

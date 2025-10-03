@@ -240,15 +240,11 @@ export class AuthService {
 
   async handleOAuthTokenCallback(userId: string, secret: string) {
     try {
-      console.log('🔍 Creating session from OAuth token...', { userId: userId.substring(0, 8) + '...', secret: secret.substring(0, 8) + '...' });
-      
       // Create a session using the OAuth2 token
       await account.createSession(userId, secret);
-      console.log('🔍 Session created successfully from OAuth token');
       
       // Get the current user
       const user = await this.getCurrentUser();
-      console.log('🔍 User retrieved after token session creation:', user ? user.email : 'null');
       
       if (user) {
         // Check if user settings exist and create default settings if needed
@@ -259,14 +255,12 @@ export class AuthService {
         );
         
         if (settings.documents.length === 0) {
-          console.log('🔍 Creating default settings for new OAuth user');
           await this.createDefaultUserSettings(user.$id);
         }
       }
       
       return user;
     } catch (error) {
-      console.error('🔍 OAuth token callback handling failed:', error);
       throw error;
     }
   }

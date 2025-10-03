@@ -124,7 +124,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Handle OAuth token directly
             const user = await authService.handleOAuthTokenCallback(userId, secret);
             if (user) {
-              console.log('🔍 OAuth token session created successfully');
               setState(prev => ({
                 ...prev,
                 user,
@@ -539,14 +538,10 @@ const LoginPage: React.FC = () => {
                 type="button"
                 onClick={async () => {
                   try {
-                    console.log('🔍 Google sign-in button clicked');
                     setLoading(true);
                     setError(''); // Clear any previous errors
-                    console.log('🔍 Calling loginWithGoogle...');
                     await loginWithGoogle();
-                    console.log('🔍 loginWithGoogle completed');
                   } catch (error) {
-                    console.error('🔍 Google sign-in error:', error);
                     setError('Google sign-in failed. Please try again.');
                     setLoading(false);
                   }
