@@ -8,33 +8,26 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Extract userId and secret from URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId');
-        const secret = urlParams.get('secret');
-
-        if (userId && secret) {
-          // Handle the OAuth token callback
-          const user = await authService.handleOAuthTokenCallback(userId, secret);
-          
-          if (user) {
-            // Refresh the user state in the app
-            await refreshUser();
-            // Redirect to the main app
-            window.location.href = '/';
-          } else {
-            window.location.href = '/?error=oauth_failed';
-          }
+        // For Appwrite OAuth2Session, check if user is authenticated
+        const user = await authService.getCurrentUser();
+        
+        if (user) {
+          // OAuth was successful, refresh the user state
+          await refreshUser();
+          // Redirect to the main app
+          window.location.href = '/';
         } else {
-          // Missing OAuth parameters, redirect to login
-          window.location.href = '/?error=missing_params';
+          // No authenticated user, OAuth failed
+          window.location.href = '/?error=oauth_failed';
         }
       } catch (error) {
+        // OAuth callback error
         window.location.href = '/?error=oauth_error';
       }
     };
 
-    handleCallback();
+    // Small delay to ensure OAuth session is established
+    setTimeout(handleCallback, 1000);
   }, [refreshUser]);
 
   return (
