@@ -95,120 +95,197 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const hash = window.location.hash;
+      const userId = urlParams.get('userId');
+      const secret = urlParams.get('secret');
       
-      // Enhanced OAuth callback detection
-      const isOAuthCallback = 
-        urlParams.has('state') || 
-        urlParams.has('code') ||
-        urlParams.has('userId') ||
-        urlParams.has('secret') ||
-        hash.includes('access_token') || 
-        hash.includes('oauth') ||
-        document.referrer.includes('accounts.google.com') ||
-        document.referrer.includes('cloud.appwrite.io') ||
-        window.location.href.includes('oauth') ||
-        window.location.href.includes('callback') ||
-        localStorage.getItem('oauth_flow_started') === 'true';
-      
-      if (isOAuthCallback) {
-        // Clear the OAuth flow flag
-        localStorage.removeItem('oauth_flow_started');
-        
-        // Check if we have OAuth token parameters (userId and secret)
-        const userId = urlParams.get('userId');
-        const secret = urlParams.get('secret');
-        
-        if (userId && secret) {
-          try {
-            // Handle OAuth token directly
-            const user = await authService.handleOAuthTokenCallback(userId, secret);
-            if (user) {
-              console.log('🔍 OAuth token session created successfully');
-              setState(prev => ({
-                ...prev,
-                user,
-                isAuthenticated: true,
-                loading: false,
-              }));
-              
-              // Clean up URL parameters
-              const cleanUrl = window.location.origin + window.location.pathname;
-              window.history.replaceState({}, document.title, cleanUrl);
-              return;
-            }
-          } catch (error) {
-            // OAuth token session creation failed, fall back to regular OAuth
-          }
+      // Check if we have OAuth callback parameters (token-based OAuth) - PRIORITY #1
+      if (userId && secret) {
+        // Prevent duplicate processing (React StrictMode calls useEffect twice in dev)
+        const tokenKey = `oauth_processed_${userId}`;
+        if (sessionStorage.getItem(tokenKey)) {
+          console.log('🔍 OAuth token already processed, skipping...');
+          return;
         }
+        sessionStorage.setItem(tokenKey, 'true');
         
-        // Clean up URL parameters first
-        const cleanUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
+        console.log('✅ OAuth TOKEN callback detected - userId and secret received!');
+        console.log('🔍 userId:', userId.substring(0, 10) + '...');
+        console.log('🔍 secret:', secret.substring(0, 10) + '...');
         
-        // Wait a moment for the session to be established
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Clear the OAuth flow flags
+        localStorage.removeItem('oauth_flow_started');
+        localStorage.removeItem('oauth_start_time');
         
         try {
-          // Try to get the current user directly
-          const user = await authService.getCurrentUser();
+          setState(prev => ({ ...prev, loading: true }));
+          
+          // Use the handleOAuthTokenCallback to create the session
+          console.log('🔍 Creating session from OAuth token parameters...');
+          const user = await authService.handleOAuthTokenCallback(userId, secret);
           
           if (user) {
-            // Check if user settings exist, create if not
-            try {
-              await authService.handleOAuthCallback();
-              // OAuth callback handled successfully
-            } catch (settingsError) {
-              // Settings creation/check failed, but user exists
-            }
+            console.log('✅✅✅ OAuth authentication SUCCESSFUL!');
+            console.log('✅ User:', user.email);
+            console.log('✅ User ID:', user.$id);
             
-            setState(prev => ({
-              ...prev,
+            setState({
               user,
               isAuthenticated: true,
               loading: false,
-            }));
+            });
+            
+            // Clean up URL parameters and redirect to home
+            window.location.href = '/';
+            
             return;
+          } else {
+            console.error('❌ handleOAuthTokenCallback returned null user');
+            throw new Error('Failed to create user session from OAuth token');
           }
-        } catch (error) {
-          console.error('OAuth user retrieval failed:', error);
-        }
-        
-        // Fallback: retry a few times
-        let retries = 0;
-        const maxRetries = 5;
-        
-        const retryAuth = async () => {
-          try {
-            const user = await authService.getCurrentUser();
-            if (user) {
-              console.log('OAuth retry successful:', user);
-              setState(prev => ({
-                ...prev,
-                user,
-                isAuthenticated: true,
-                loading: false,
-              }));
-              return;
+        } catch (error: any) {
+          console.error('❌ OAuth TOKEN authentication failed:', error);
+          
+          // Check if it's a rate limit error
+          if (error.message?.includes('Rate limit') || error.code === 429) {
+            console.log('⏰ Rate limit hit - session was likely created, checking...');
+            
+            // Wait a bit and try to get the current user (session might have been created)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            try {
+              const user = await authService.getCurrentUser();
+              if (user) {
+                console.log('✅ Session was created! User found:', user.email);
+                setState({
+                  user,
+                  isAuthenticated: true,
+                  loading: false,
+                });
+                window.location.href = '/';
+                return;
+              }
+            } catch (userError) {
+              console.log('❌ Could not retrieve user after rate limit');
             }
-          } catch (error) {
-            console.log(`OAuth retry ${retries + 1} failed:`, error);
           }
           
-          retries++;
-          if (retries < maxRetries) {
-            setTimeout(retryAuth, 2000);
+          setState(prev => ({ ...prev, loading: false }));
+          localStorage.removeItem('oauth_flow_started');
+          localStorage.removeItem('oauth_start_time');
+          
+          // Only show error if not rate limit
+          if (!error.message?.includes('Rate limit')) {
+            alert('Google Sign-In failed.\n\nError: ' + error.message + '\n\nPlease try again.');
+          }
+          
+          // Redirect to home
+          window.location.href = '/';
+          return;
+        }
+      }
+      
+      // Check if we're returning from OAuth (session-based OAuth - Appwrite sets cookies automatically)
+      const oauthStartTime = localStorage.getItem('oauth_start_time');
+      const isOAuthCallback = 
+        (localStorage.getItem('oauth_flow_started') === 'true' && oauthStartTime) ||
+        document.referrer.includes('accounts.google.com') ||
+        document.referrer.includes('cloud.appwrite.io') ||
+        document.referrer.includes('fra.cloud.appwrite.io');
+      
+      // Only treat as OAuth callback if it happened recently (within last 2 minutes)
+      const isRecentOAuth = oauthStartTime && (Date.now() - parseInt(oauthStartTime)) < 120000;
+      
+      if (isOAuthCallback && isRecentOAuth) {
+        console.log('🔍 OAuth callback detected (session-based) - Appwrite should have set session cookies');
+        console.log('🔍 Referrer:', document.referrer);
+        console.log('🔍 Waiting for session to be available...');
+        
+        // Clear the OAuth flow flags
+        localStorage.removeItem('oauth_flow_started');
+        localStorage.removeItem('oauth_start_time');
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        setState(prev => ({ ...prev, loading: true }));
+        
+        // Appwrite sets session cookies automatically after OAuth
+        // We need to wait a bit and then try to get the current user
+        const maxAttempts = 10;
+        let attempts = 0;
+        
+        const tryGetUser = async () => {
+          attempts++;
+          console.log(`🔍 Attempt ${attempts}/${maxAttempts} to get authenticated user...`);
+          
+          try {
+            // First check if there's an active session
+            const session = await authService.checkActiveSession();
+            
+            if (session) {
+              console.log('🔍 ✅ Active session found:', session.$id);
+              
+              // Now get the user
+              const user = await authService.getCurrentUser();
+              
+              if (user) {
+                console.log('✅ OAuth authentication successful:', user.email);
+                
+                // Create default settings if needed
+                try {
+                  await authService.handleOAuthCallback();
+                } catch (settingsError) {
+                  console.log('🔍 Settings handling completed');
+                }
+                
+                setState({
+                  user,
+                  isAuthenticated: true,
+                  loading: false,
+                });
+                
+                return true;
+              }
+            }
+          } catch (error: any) {
+            console.log(`🔍 Attempt ${attempts} failed:`, error.message);
+          }
+          
+          // Retry if we haven't reached max attempts
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            return tryGetUser();
           } else {
-            console.log('OAuth retries exhausted, falling back to normal flow');
-            await refreshUser();
+            console.error('❌ OAuth session creation failed after', maxAttempts, 'attempts');
+            console.error('❌ This means Appwrite did NOT create a session after OAuth redirect');
+            console.error('❌ Possible causes:');
+            console.error('   1. Redirect URL in Google Console does NOT match: ' + window.location.origin + '/');
+            console.error('   2. Google OAuth Client ID/Secret in Appwrite Console is incorrect');
+            console.error('   3. Google OAuth provider not enabled in Appwrite Console');
+            console.error('   4. Missing Appwrite callback URL in Google Console');
+            
+            setState(prev => ({ ...prev, loading: false }));
+            
+            alert('Google Sign-In Failed\n\n' +
+                  'Appwrite did not create a session after Google authentication.\n\n' +
+                  'Required Google Console Redirect URIs:\n' +
+                  '1. ' + window.location.origin + '/\n' +
+                  '2. https://fra.cloud.appwrite.io/v1/account/sessions/oauth2/callback/google/68d833cd002390a93c4c\n\n' +
+                  'Please verify both URLs are added in Google Cloud Console.');
+            
+            return false;
           }
         };
         
-        setTimeout(retryAuth, 1000);
-      } else {
-        // Normal app initialization
-        await refreshUser();
+        // Start trying to get the user after a short delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await tryGetUser();
+        return;
       }
+      
+      // Normal app initialization
+      await refreshUser();
     };
 
     handleOAuthCallback();

@@ -200,15 +200,42 @@ export class AuthService {
 
   async loginWithGoogle() {
     try {
-      const redirectUrl = `${window.location.origin}/auth/callback`;
-      const failureUrl = `${window.location.origin}/login?error=oauth_failed`;
+      console.log('🔍 Preparing Google OAuth login...');
+      
+      // CRITICAL: Delete any existing sessions first to avoid conflicts
+      // This is a common issue - old sessions prevent new OAuth sessions from being created
+      try {
+        console.log('🔍 Checking for existing sessions...');
+        const existingSession = await account.getSession('current');
+        if (existingSession) {
+          console.log('🔍 Found existing session, deleting it before OAuth...');
+          await account.deleteSession('current');
+          console.log('🔍 ✅ Existing session deleted');
+        }
+      } catch (error) {
+        // No existing session, that's fine
+        console.log('🔍 No existing session found (this is good)');
+      }
+      
+      // IMPORTANT: Use /auth/callback for token-based OAuth
+      // This will redirect with userId and secret parameters that we can use to create a session
+      const successUrl = `${window.location.origin}/auth/callback`;
+      const failureUrl = `${window.location.origin}/?error=oauth_failed`;
+      
+      console.log('🔍 Starting Google OAuth with callback URL:', successUrl);
+      console.log('🔍 This should redirect back with userId and secret parameters');
       
       // Mark OAuth flow as started
       localStorage.setItem('oauth_flow_started', 'true');
+      localStorage.setItem('oauth_start_time', Date.now().toString());
       
-      await account.createOAuth2Session('google' as any, redirectUrl, failureUrl);
+      // Create OAuth2 token - this will redirect to Google
+      // After Google auth, Appwrite redirects to successUrl with userId and secret params
+      await account.createOAuth2Token('google' as any, successUrl, failureUrl);
     } catch (error) {
+      console.error('🔍 OAuth session creation failed:', error);
       localStorage.removeItem('oauth_flow_started');
+      localStorage.removeItem('oauth_start_time');
       throw error;
     }
   }

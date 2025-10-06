@@ -7,7 +7,6 @@ import TimerPage from "./routes/TimerPage";
 import NotesPage from "./routes/NotesPage";
 import InsightsPage from "./routes/InsightsPage";
 import SettingsPage from "./routes/SettingsPage";
-import AuthCallback from "./routes/AuthCallback";
 import GoogleCalendarCallback from "./routes/GoogleCalendarCallback";
 import Layout from "./layouts/Layout";
 import { PomodoroProvider } from './features/pomodoro/PomodoroContext';
@@ -23,7 +22,7 @@ function App() {
     <AuthProvider>
       <Routes>
         {/* OAuth callback routes - outside of ProtectedRoute */}
-        <Route path="/auth/callback" element={<AuthCallback />} />
+        {/* Google OAuth callback is now handled in AuthContext */}
         <Route path="/auth/google-calendar" element={<GoogleCalendarCallback />} />
         
         {/* Protected routes */}
