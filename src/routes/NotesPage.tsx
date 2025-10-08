@@ -8,7 +8,7 @@ import type { Note } from '../domain/models';
 const FolderIcon: React.FC<{open?: boolean}> = ({open}) => <span style={{marginRight:4}}>{open? '📂':'📁'}</span>;
 
 export default function NotesPage(){
-  const { folders, notes, loading, createFolder, renameFolder, deleteFolder, createNote, updateNote, deleteNote, moveNote, getFolderChildren, getNotesInFolder } = useAppwriteNotes();
+  const { folders, notes, createFolder, renameFolder, deleteFolder, createNote, updateNote, deleteNote, moveNote, getFolderChildren, getNotesInFolder } = useAppwriteNotes();
   const { tasks } = useAppwriteTasksContext();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
