@@ -87,15 +87,18 @@ const MonthView: React.FC = () => {
   };
 
   const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekdaysShort = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   return (
     <>
       <div className="flex-1 flex flex-col">
       {/* Weekday headers */}
       <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-        {weekdays.map(day => (
-          <div key={day} className="p-4 text-center">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{day}</span>
+        {weekdays.map((day, index) => (
+          <div key={day} className="p-2 sm:p-4 text-center">
+            {/* Show single letter on mobile, full text on tablet+ */}
+            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 sm:hidden">{weekdaysShort[index]}</span>
+            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">{day}</span>
           </div>
         ))}
       </div>
@@ -123,7 +126,7 @@ const MonthView: React.FC = () => {
         </div>
       ) : (
         /* Calendar grid */
-        <div className="flex-1 grid grid-cols-7 grid-rows-6">
+        <div className="flex-1 grid grid-cols-7 auto-rows-fr">
           {monthDays.map((day, index) => {
             const isToday = day.toDateString() === today;
             const isCurrentMonth = day.getMonth() === selectedMonth;
@@ -132,7 +135,7 @@ const MonthView: React.FC = () => {
             return (
               <div
                 key={index}
-                className={`border-r border-b border-gray-200 dark:border-gray-700 p-2 min-h-24 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                className={`border-r border-b border-gray-200 dark:border-gray-700 p-1 sm:p-2 min-h-16 sm:min-h-24 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
                   !isCurrentMonth ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-800'
                 }`}
                 onClick={() => {
@@ -141,10 +144,10 @@ const MonthView: React.FC = () => {
                 }}
               >
                 {/* Day number */}
-                <div className="flex justify-between items-start mb-1">
-                  <span className={`text-sm ${
+                <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+                  <span className={`text-xs sm:text-sm ${
                     isToday 
-                      ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-medium'
+                      ? 'bg-blue-600 text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-medium'
                       : isCurrentMonth
                         ? 'text-gray-900 dark:text-gray-100 font-medium'
                         : 'text-gray-400 dark:text-gray-600'
@@ -154,34 +157,61 @@ const MonthView: React.FC = () => {
                 </div>
 
                 {/* Events */}
-                <div className="space-y-1">
-                  {events.slice(0, 2).map((event) => (
-                    <div
-                      key={event.id}
-                      className={`text-xs p-1 rounded truncate cursor-pointer text-white flex items-center justify-center ${getEventColorClasses(event.type)}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        showEventModal(event);
-                      }}
-                    >
-                      <span className="text-center font-medium">{event.title}</span>
-                    </div>
-                  ))}
-                  {events.length > 2 && (
-                    <div 
-                      className="text-xs text-gray-500 dark:text-gray-400 text-center font-medium cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                      onMouseEnter={(e) => handleMoreEventsHover(events.slice(2), e)}
-                      onMouseLeave={handleMoreEventsLeave}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Show first remaining event when clicking "+X more"
-                        if (events[2]) {
-                          showEventModal(events[2]);
-                        }
-                      }}
-                    >
-                      +{events.length - 2} more
-                    </div>
+                <div className="space-y-0.5 sm:space-y-1">
+                  {/* On mobile, show only dots for events. On tablet+, show full event bars */}
+                  {events.length > 0 && (
+                    <>
+                      {/* Mobile: Show dots */}
+                      <div className="flex gap-1 sm:hidden flex-wrap">
+                        {events.slice(0, 3).map((event) => (
+                          <div
+                            key={event.id}
+                            className={`w-1.5 h-1.5 rounded-full ${getEventColorClasses(event.type)}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              showEventModal(event);
+                            }}
+                          />
+                        ))}
+                        {events.length > 3 && (
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                            +{events.length - 3}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Tablet+: Show event bars */}
+                      <div className="hidden sm:block space-y-1">
+                        {events.slice(0, 2).map((event) => (
+                          <div
+                            key={event.id}
+                            className={`text-xs p-1 rounded truncate cursor-pointer text-white flex items-center justify-center ${getEventColorClasses(event.type)}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              showEventModal(event);
+                            }}
+                          >
+                            <span className="text-center font-medium">{event.title}</span>
+                          </div>
+                        ))}
+                        {events.length > 2 && (
+                          <div 
+                            className="text-xs text-gray-500 dark:text-gray-400 text-center font-medium cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                            onMouseEnter={(e) => handleMoreEventsHover(events.slice(2), e)}
+                            onMouseLeave={handleMoreEventsLeave}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Show first remaining event when clicking "+X more"
+                              if (events[2]) {
+                                showEventModal(events[2]);
+                              }
+                            }}
+                          >
+                            +{events.length - 2} more
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

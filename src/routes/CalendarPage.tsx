@@ -12,30 +12,30 @@ const CalendarPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Calendar</h1>
-          <div className="flex items-center justify-between">
-            <p className="text-gray-600 dark:text-gray-400">
+      <div className="max-w-7xl mx-auto p-3 sm:p-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Calendar</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
               Your Focus Flow calendar with Google Calendar sync
             </p>
             
             {/* Google Calendar Connection Status */}
             <div className="flex items-center">
-              <div className={`w-3 h-3 rounded-full mr-3 ${
+              <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full mr-2 sm:mr-3 ${
                 googleCalendar.isConnected ? 'bg-green-500' : 'bg-gray-400'
               }`} />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                Google Calendar: {googleCalendar.isConnected ? 'Connected' : 'Not Connected'}
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
+                {googleCalendar.isConnected ? 'Connected' : 'Not Connected'}
               </span>
             </div>
           </div>
         </div>
 
         {/* Main Calendar Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
           {/* Calendar Grid - Takes most space */}
-          <div className="xl:col-span-3">
+          <div className="xl:col-span-3 order-1">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
               <CalendarHeader />
               <CalendarGrid />
@@ -43,13 +43,13 @@ const CalendarPage: React.FC = () => {
           </div>
 
           {/* Sidebar - Google Calendar Settings and Mini Calendar */}
-          <div className="xl:col-span-1 space-y-6">
+          <div className="xl:col-span-1 space-y-4 sm:space-y-6 order-2">
             {/* Google Calendar Sync Panel */}
             <div className="bg-white dark:bg-gray-900 rounded-lg shadow">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Google Calendar</h3>
+              <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Google Calendar</h3>
               </div>
-              <div className="p-4">
+              <div className="p-3 sm:p-4">
                 <GoogleCalendarSettings />
               </div>
             </div>

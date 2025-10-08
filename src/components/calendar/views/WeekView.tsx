@@ -24,11 +24,33 @@ const WeekView: React.FC = () => {
   };
 
   const weekStart = getWeekStart(state.selectedDate);
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
+  const fullWeekDays = Array.from({ length: 7 }, (_, i) => {
     const day = new Date(weekStart);
     day.setDate(weekStart.getDate() + i);
     return day;
   });
+
+  // On mobile, show only 3 days (yesterday, today, tomorrow)
+  const [showMobileView, setShowMobileView] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setShowMobileView(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // For mobile: show today and 2 days around it
+  const todayIndex = fullWeekDays.findIndex(d => d.toDateString() === new Date().toDateString());
+  const mobileDayIndices = todayIndex >= 0 
+    ? [Math.max(0, todayIndex - 1), todayIndex, Math.min(6, todayIndex + 1)]
+    : [0, 1, 2];
+  
+  const weekDays = showMobileView 
+    ? mobileDayIndices.map(i => fullWeekDays[i])
+    : fullWeekDays;
 
   // Hours for the time grid (showing work hours 6 AM to 11 PM)
   const hours = Array.from({ length: 18 }, (_, i) => i + 6);
@@ -90,18 +112,18 @@ const WeekView: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Week header with days */}
         <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-          <div className="w-20 min-w-20 bg-gray-50 dark:bg-gray-800" /> {/* Time column */}
+          <div className="w-12 sm:w-20 min-w-12 sm:min-w-20 bg-gray-50 dark:bg-gray-800" /> {/* Time column */}
           {weekDays.map((day, i) => (
             <div
               key={i}
-              className={`flex-1 p-4 text-center border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${
+              className={`flex-1 p-2 sm:p-4 text-center border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${
                 day.toDateString() === today ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
             >
-              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
+              <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5 sm:mb-1">
                 {day.toLocaleDateString(undefined, { weekday: 'short' })}
               </div>
-              <div className={`text-base font-semibold w-8 h-8 flex items-center justify-center rounded-full mx-auto ${
+              <div className={`text-sm sm:text-base font-semibold w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full mx-auto ${
                 day.toDateString() === today 
                   ? 'bg-blue-600 text-white' 
                   : 'text-gray-900 dark:text-gray-100'
@@ -139,10 +161,10 @@ const WeekView: React.FC = () => {
           /* Time grid with events */
           <div className="flex min-h-full">
             {/* Time column */}
-            <div className="w-20 min-w-20 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <div className="w-12 sm:w-20 min-w-12 sm:min-w-20 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
               {hours.map(hour => (
-                <div key={hour} className="h-16 border-b border-gray-100 dark:border-gray-700 flex items-start justify-end px-2 py-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium leading-none">
+                <div key={hour} className="h-12 sm:h-16 border-b border-gray-100 dark:border-gray-700 flex items-start justify-end px-1 sm:px-2 py-1">
+                  <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-none">
                     {formatHour(hour)}
                   </span>
                 </div>
@@ -158,7 +180,7 @@ const WeekView: React.FC = () => {
                   return (
                     <div
                       key={hour}
-                      className="h-16 border-b border-gray-100 dark:border-gray-700 p-1 relative hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors overflow-hidden"
+                      className="h-12 sm:h-16 border-b border-gray-100 dark:border-gray-700 p-0.5 sm:p-1 relative hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors overflow-hidden"
                       onClick={() => {
                         // Create new event at this time slot
                         const newEventTime = new Date(day);
@@ -167,14 +189,14 @@ const WeekView: React.FC = () => {
                     >
                       {events.length > 0 && (
                         <div className="flex flex-col gap-0.5 h-full justify-start">
-                          {events.slice(0, 2).map((event) => (
+                          {events.slice(0, showMobileView ? 1 : 2).map((event) => (
                             <div
                               key={event.id}
-                              className={`text-xs p-1 rounded truncate cursor-pointer flex-shrink-0 shadow-sm hover:shadow-md transition-shadow flex items-center justify-center ${getEventColorClasses(event)}`}
+                              className={`text-[10px] sm:text-xs p-0.5 sm:p-1 rounded truncate cursor-pointer flex-shrink-0 shadow-sm hover:shadow-md transition-shadow flex items-center justify-center ${getEventColorClasses(event)}`}
                               style={{ 
-                                height: events.length === 1 ? 'auto' : '16px',
-                                minHeight: '16px',
-                                maxHeight: '20px'
+                                height: events.length === 1 ? 'auto' : showMobileView ? '14px' : '16px',
+                                minHeight: showMobileView ? '14px' : '16px',
+                                maxHeight: showMobileView ? '18px' : '20px'
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -184,21 +206,22 @@ const WeekView: React.FC = () => {
                               <div className="font-medium truncate leading-tight text-center">{event.title}</div>
                             </div>
                           ))}
-                          {events.length > 2 && (
+                          {events.length > (showMobileView ? 1 : 2) && (
                             <div 
-                              className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded px-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0 shadow-sm flex items-center justify-center"
-                              style={{ height: '16px', minHeight: '16px', maxHeight: '20px' }}
-                              onMouseEnter={(e) => handleMoreEventsHover(events.slice(2), e)}
+                              className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded px-0.5 sm:px-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0 shadow-sm flex items-center justify-center"
+                              style={{ height: showMobileView ? '14px' : '16px', minHeight: showMobileView ? '14px' : '16px', maxHeight: showMobileView ? '18px' : '20px' }}
+                              onMouseEnter={(e) => handleMoreEventsHover(events.slice(showMobileView ? 1 : 2), e)}
                               onMouseLeave={handleMoreEventsLeave}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 // Show first remaining event when clicking "+X more"
-                                if (events[2]) {
-                                  showEventModal(events[2]);
+                                const nextEventIndex = showMobileView ? 1 : 2;
+                                if (events[nextEventIndex]) {
+                                  showEventModal(events[nextEventIndex]);
                                 }
                               }}
                             >
-                              <div className="leading-tight font-medium text-center">+{events.length - 2}</div>
+                              <div className="leading-tight font-medium text-center">+{events.length - (showMobileView ? 1 : 2)}</div>
                             </div>
                           )}
                         </div>
