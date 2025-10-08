@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useNotes } from '../features/notes/NotesContext';
+import { useAppwriteNotes } from '../features/notes/AppwriteNotesContext';
 import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
 import { Modal } from '../components/Modal';
+import type { Note } from '../domain/models';
 
 const FolderIcon: React.FC<{open?: boolean}> = ({open}) => <span style={{marginRight:4}}>{open? '📂':'📁'}</span>;
 
 export default function NotesPage(){
-  const { folders, notes, createFolder, renameFolder, deleteFolder, createNote, updateNote, deleteNote, moveNote, getFolderChildren, getNotesInFolder } = useNotes();
+  const { folders, notes, loading, createFolder, renameFolder, deleteFolder, createNote, updateNote, deleteNote, moveNote, getFolderChildren, getNotesInFolder } = useAppwriteNotes();
   const { tasks } = useAppwriteTasksContext();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
@@ -66,44 +67,49 @@ export default function NotesPage(){
     setDialog({ type:'delete-note', id });
   }
 
-  function submitDialog(){
+  async function submitDialog(){
     if(!dialog) return;
-    switch(dialog.type){
-      case 'create-folder': {
-        if(!tempName.trim()) return;
-        createFolder(tempName.trim(), dialog.parentId);
-        break;
-      }
-      case 'rename-folder': {
-        if(!tempName.trim()) return;
-        renameFolder(dialog.id, tempName.trim());
-        break;
-      }
-      case 'delete-folder': {
-        const success = deleteFolder(dialog.id);
-        if(!success) {
-          setDialog({ type:'folder-not-empty' });
-          return; // do not close
+    try {
+      switch(dialog.type){
+        case 'create-folder': {
+          if(!tempName.trim()) return;
+          await createFolder(tempName.trim(), dialog.parentId);
+          break;
         }
-        break;
+        case 'rename-folder': {
+          if(!tempName.trim()) return;
+          await renameFolder(dialog.id, tempName.trim());
+          break;
+        }
+        case 'delete-folder': {
+          const success = await deleteFolder(dialog.id);
+          if(!success) {
+            setDialog({ type:'folder-not-empty' });
+            return; // do not close
+          }
+          break;
+        }
+        case 'create-note': {
+          const title = tempName.trim() || 'Untitled';
+          const n = await createNote(title, activeFolder, '');
+          setActiveNoteId(n.id);
+          break;
+        }
+        case 'delete-note': {
+          await deleteNote(dialog.id);
+          if(activeNoteId === dialog.id) setActiveNoteId(null);
+          break;
+        }
+        case 'folder-not-empty': {
+          break; // just informational
+        }
       }
-      case 'create-note': {
-        const title = tempName.trim() || 'Untitled';
-        const n = createNote(title, activeFolder, '');
-        setActiveNoteId(n.id);
-        break;
-      }
-      case 'delete-note': {
-        deleteNote(dialog.id);
-        if(activeNoteId === dialog.id) setActiveNoteId(null);
-        break;
-      }
-      case 'folder-not-empty': {
-        break; // just informational
-      }
+      setDialog(null);
+      setTempName('');
+    } catch (error) {
+      console.error('Error in submitDialog:', error);
+      alert('Failed to perform action. Please try again.');
     }
-    setDialog(null);
-    setTempName('');
   }
 
   function dialogTitle(){
@@ -131,8 +137,28 @@ export default function NotesPage(){
     }
   }
 
-  function handleTaskLink(noteId: string, taskId: string){
-    updateNote(noteId, { taskId: taskId || undefined });
+  async function handleTaskLink(noteId: string, taskId: string){
+    try {
+      await updateNote(noteId, { taskId: taskId || undefined });
+    } catch (error) {
+      console.error('Failed to link task:', error);
+    }
+  }
+
+  async function handleUpdateNote(noteId: string, patch: Partial<Pick<Note,'title'|'body'|'folderId'|'taskId'>>){
+    try {
+      await updateNote(noteId, patch);
+    } catch (error) {
+      console.error('Failed to update note:', error);
+    }
+  }
+
+  async function handleMoveNote(noteId: string, folderId: string | null){
+    try {
+      await moveNote(noteId, folderId);
+    } catch (error) {
+      console.error('Failed to move note:', error);
+    }
   }
 
   function FolderNode({id, depth}:{id:string; depth:number}){
@@ -339,12 +365,12 @@ export default function NotesPage(){
         {activeNote && (
           <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
             <div style={{padding:'.75rem .9rem', borderBottom:'1px solid var(--border)', display:'flex', flexWrap:'wrap', gap:8, alignItems:'center', background:'var(--surface-elev)', backdropFilter:'blur(4px)'}}>
-              <input value={activeNote.title} onChange={e=> updateNote(activeNote.id, {title:e.target.value})} style={{fontSize:'.85rem', fontWeight:600, flex:'1 1 auto', minWidth:180}} aria-label="Note title" />
+              <input value={activeNote.title} onChange={e=> handleUpdateNote(activeNote.id, {title:e.target.value})} style={{fontSize:'.85rem', fontWeight:600, flex:'1 1 auto', minWidth:180}} aria-label="Note title" />
               <select value={activeNote.taskId||''} onChange={e=> handleTaskLink(activeNote.id, e.target.value)} aria-label="Link note to task" style={{fontSize:'.55rem'}}>
                 <option value="">(No task)</option>
                 {tasks.map(t=> <option key={t.id} value={t.id}>{t.title}</option>)}
               </select>
-              <select value={activeNote.folderId||''} onChange={e=> moveNote(activeNote.id, e.target.value||null)} aria-label="Move note to folder" style={{fontSize:'.55rem'}}>
+              <select value={activeNote.folderId||''} onChange={e=> handleMoveNote(activeNote.id, e.target.value||null)} aria-label="Move note to folder" style={{fontSize:'.55rem'}}>
                 <option value="">(Root)</option>
                 {folders.map(f=> <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
@@ -374,7 +400,7 @@ export default function NotesPage(){
               );
             })()}
             <div style={{flex:1, display:'flex'}}>
-              <textarea value={activeNote.body} onChange={e=> updateNote(activeNote.id, {body:e.target.value})} aria-label="Note body" style={{flex:1, padding:'1rem .9rem', border:'none', outline:'none', background:'var(--bg)', fontSize:'.7rem', fontFamily:'inherit', lineHeight:1.5, resize:'none'}} />
+              <textarea value={activeNote.body} onChange={e=> handleUpdateNote(activeNote.id, {body:e.target.value})} aria-label="Note body" style={{flex:1, padding:'1rem .9rem', border:'none', outline:'none', background:'var(--bg)', fontSize:'.7rem', fontFamily:'inherit', lineHeight:1.5, resize:'none'}} />
             </div>
           </div>
         )}

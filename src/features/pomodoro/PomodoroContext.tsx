@@ -79,7 +79,7 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const tickRef = useRef<number | null>(null);
 
   // Side-effect helper: play sound & show notification when a session (focus or break) ends
-  const fireSessionEndEffects = useCallback((s: PomodoroState, mode: PomodoroMode, sessionData?: { sessionId: string; startedAt: string; durationSec: number; taskId?: string }, skipGoogleCalendarLogging = false) => {
+  const fireSessionEndEffects = useCallback(async (s: PomodoroState, mode: PomodoroMode, sessionData?: { sessionId: string; startedAt: string; durationSec: number; taskId?: string }, skipGoogleCalendarLogging = false) => {
     try {
       if (s.enableSound) {
         const AudioCtx: any = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -117,7 +117,6 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const loggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
         
         if (loggedSessions.includes(sessionKey)) {
-          console.log('❌ Session already logged, skipping:', sessionKey);
           return;
         }
 
@@ -125,27 +124,19 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const updatedLoggedSessions = [...loggedSessions, sessionKey];
         localStorage.setItem('logged_sessions', JSON.stringify(updatedLoggedSessions));
         
-        if (googleCalendarService.isAuthenticated()) {
-          console.log('✅ Google Calendar authenticated, attempting to log session');
-          console.log('- Mode is focus?', mode === 'focus');
-          
+        const hasValidTokens = await googleCalendarService.hasValidTokens();
+        if (hasValidTokens) {
           const startTime = new Date(sessionData.startedAt);
           const endTime = new Date(startTime.getTime() + sessionData.durationSec * 1000);
-          
-          console.log('- Start time:', startTime.toISOString());
-          console.log('- End time:', endTime.toISOString());
-          console.log('- Duration (seconds):', sessionData.durationSec);
           
           // Get actual task title if taskId is provided
           let taskTitle: string | undefined;
           if (sessionData.taskId) {
             const task = tasks.find(t => t.id === sessionData.taskId);
-            taskTitle = task ? task.title : sessionData.taskId; // Fallback to ID if task not found
-            console.log('- taskTitle:', taskTitle);
+            taskTitle = task ? task.title : undefined; // Don't fallback to ID
           }
           
           if (mode === 'focus') {
-            console.log('🎯 Logging focus session to Google Calendar...');
             try {
               const eventData = googleCalendarService.createFocusSessionEvent({
                 startTime,
@@ -153,37 +144,24 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 duration: sessionData.durationSec,
                 taskTitle
               });
-              console.log('- Event data created:', eventData);
               
-              googleCalendarService.createEvent(eventData).then(result => {
-                console.log('✅ Focus session logged successfully to Google Calendar:', result);
-              }).catch(error => {
-                console.error('❌ Failed to log focus session to Google Calendar:', error);
-                console.error('- Error details:', error.message);
-                console.error('- Error stack:', error.stack);
+              googleCalendarService.createEvent(eventData).catch(error => {
+                console.error('Failed to log focus session to Google Calendar:', error);
                 // Remove from logged sessions if logging failed
                 const failedLoggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
                 const filteredSessions = failedLoggedSessions.filter((key: string) => key !== sessionKey);
                 localStorage.setItem('logged_sessions', JSON.stringify(filteredSessions));
               });
             } catch (error) {
-              console.error('❌ Error creating event data:', error);
+              console.error('Error creating calendar event:', error);
             }
           }
-          // Note: We could add break session logging here if needed in the future
         } else {
-          console.log('❌ Google Calendar not authenticated');
-          console.log('- Removing session from logged list due to no auth');
           // Remove from logged sessions if not authenticated
           const notAuthLoggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
           const filteredSessions = notAuthLoggedSessions.filter((key: string) => key !== sessionKey);
           localStorage.setItem('logged_sessions', JSON.stringify(filteredSessions));
         }
-      } else {
-        console.log('❌ Session logging skipped:', {
-          hasSessionData: !!sessionData,
-          skipGoogleCalendarLogging
-        });
       }
     } catch {
       // swallow errors silently (audio/notification failures)
@@ -240,7 +218,11 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               };
             }
           // Fire side-effects after state update (sound/notification)
-          queueMicrotask(() => fireSessionEndEffects(s, mode, { sessionId, startedAt, durationSec, taskId }));
+          queueMicrotask(() => {
+            fireSessionEndEffects(s, mode, { sessionId, startedAt, durationSec, taskId }).catch(err => 
+              console.error('Error in fireSessionEndEffects:', err)
+            );
+          });
           return {
             ...s,
             active,
@@ -298,7 +280,11 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     let focusCycleCount = s.focusCycleCount;
     if (mode === 'focus') focusCycleCount += 1;
     // Side effects for manual completion too (but skip Google Calendar logging to prevent duplicates)
-    queueMicrotask(() => fireSessionEndEffects(s, mode, { sessionId, startedAt, durationSec: credited, taskId }, true));
+    queueMicrotask(() => {
+      fireSessionEndEffects(s, mode, { sessionId, startedAt, durationSec: credited, taskId }, true).catch(err =>
+        console.error('Error in fireSessionEndEffects:', err)
+      );
+    });
     return { ...s, active: undefined, sessions: [...s.sessions, session], focusCycleCount };
   });
 

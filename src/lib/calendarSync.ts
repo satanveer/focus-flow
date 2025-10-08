@@ -31,8 +31,13 @@ export class CalendarSyncService {
   private currentUserId: string | null = null;
 
   // Check if sync is available
-  canSync(): boolean {
-    return googleCalendarService.isAuthenticated();
+  async canSync(): Promise<boolean> {
+    try {
+      return await googleCalendarService.hasValidTokens();
+    } catch (error) {
+      console.error('Error checking sync availability:', error);
+      return false;
+    }
   }
 
   // Get sync status
@@ -46,7 +51,8 @@ export class CalendarSyncService {
       throw new Error('Sync already in progress');
     }
 
-    if (!this.canSync()) {
+    const canSync = await this.canSync();
+    if (!canSync) {
       throw new Error('Google Calendar not connected');
     }
 
@@ -335,7 +341,8 @@ export class CalendarSyncService {
     productivity?: 'great' | 'some-distractions' | 'unfocused';
     duration: number;
   }): Promise<GoogleCalendarEvent | null> {
-    if (!this.canSync()) {
+    const canSync = await this.canSync();
+    if (!canSync) {
       return null;
     }
 
@@ -355,7 +362,8 @@ export class CalendarSyncService {
     type: 'short' | 'long';
     duration: number;
   }): Promise<GoogleCalendarEvent | null> {
-    if (!this.canSync()) {
+    const canSync = await this.canSync();
+    if (!canSync) {
       return null;
     }
 

@@ -12,7 +12,7 @@ import Layout from "./layouts/Layout";
 import { PomodoroProvider } from './features/pomodoro/PomodoroContext';
 import TabTitleUpdater from './components/TabTitleUpdater';
 
-import { NotesProvider } from './features/notes/NotesContext';
+import { AppwriteNotesProvider } from './features/notes/AppwriteNotesContext';
 import { AuthProvider, ProtectedRoute } from './contexts/AuthContext';
 import { AppwriteTasksProvider } from './features/tasks/AppwriteTasksContext';
 import { CalendarProvider } from './contexts/CalendarContext';
@@ -32,7 +32,7 @@ function App() {
               <CalendarProvider>
                 <PomodoroProvider>
                   <TabTitleUpdater />
-                  <NotesProvider>
+                  <AppwriteNotesProvider>
                     <Routes>
                       <Route element={<Layout/>}>
                         <Route index element={<DashboardPage />} />
@@ -44,7 +44,7 @@ function App() {
                         <Route path="settings" element={<SettingsPage />} />
                       </Route>
                     </Routes>
-                  </NotesProvider>
+                  </AppwriteNotesProvider>
                 </PomodoroProvider>
               </CalendarProvider>
             </AppwriteTasksProvider>

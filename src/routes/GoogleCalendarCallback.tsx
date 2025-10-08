@@ -18,8 +18,6 @@ export const GoogleCalendarCallback: React.FC = () => {
         const code = urlParams.get('code');
         const error = urlParams.get('error');
 
-        console.log('OAuth callback - Code:', code ? 'received' : 'missing', 'Error:', error);
-
         if (error) {
           throw new Error(`OAuth error: ${error}`);
         }
@@ -31,24 +29,40 @@ export const GoogleCalendarCallback: React.FC = () => {
         setMessage('Exchanging authorization code for token...');
 
         // Exchange code for access token
-        await googleCalendarService.exchangeCodeForToken(code);
+        const tokens = await googleCalendarService.exchangeCodeForToken(code);
 
-        console.log('Google Calendar OAuth successful, token stored');
+        // Save tokens to Appwrite user preferences
+        const { GoogleCalendarTokenManager } = await import('../lib/googleCalendarTokens');
+        await GoogleCalendarTokenManager.saveTokens(tokens);
 
-        setMessage('Token stored successfully!');
+        // Clear the pending OAuth flag
+        localStorage.removeItem('needs_calendar_oauth');
 
         setStatus('success');
-        setMessage('Google Calendar connected successfully!');
-
-        // Small delay to show success message
-        setTimeout(() => {
-          // Get the return path or default to calendar page
-          const returnPath = localStorage.getItem('google_auth_return_path') || '/calendar';
-          localStorage.removeItem('google_auth_return_path');
-
-          // Navigate back to the original page with success indicator
-          navigate(returnPath + '?google_auth=success', { replace: true });
-        }, 1500);
+        
+        // Check if this was an automatic connection after login
+        const isAutoConnect = localStorage.getItem('auto_calendar_connect') === 'true';
+        
+        if (isAutoConnect) {
+          localStorage.removeItem('auto_calendar_connect');
+          setMessage('Welcome! Google Calendar connected successfully!');
+          
+          // Shorter delay for auto-connect - feels more seamless
+          setTimeout(() => {
+            const returnPath = localStorage.getItem('google_auth_return_path') || '/';
+            localStorage.removeItem('google_auth_return_path');
+            navigate(returnPath, { replace: true });
+          }, 800);
+        } else {
+          setMessage('Google Calendar connected successfully!');
+          
+          // Normal delay for manual connection
+          setTimeout(() => {
+            const returnPath = localStorage.getItem('google_auth_return_path') || '/calendar';
+            localStorage.removeItem('google_auth_return_path');
+            navigate(returnPath + '?google_auth=success', { replace: true });
+          }, 1500);
+        }
 
       } catch (error) {
         console.error('Google Calendar OAuth callback error:', error);

@@ -3,7 +3,7 @@ import { usePomodoro } from '../features/pomodoro/PomodoroContext';
 import FocusGoalBar from '../features/pomodoro/components/FocusGoalBar';
 import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
 import { useSearchParams } from 'react-router-dom';
-import { useNotes } from '../features/notes/NotesContext';
+import { useAppwriteNotes } from '../features/notes/AppwriteNotesContext';
 import type { ProductivityRating } from '../domain/models';
 
 function format(seconds: number) {
@@ -15,7 +15,7 @@ function format(seconds: number) {
 export default function TimerPage() {
   const { start, pause, resume, abort, complete, active, getRemaining, focusDurations, sessions, focusCycleCount, longBreakEvery, updateSessionProductivity } = usePomodoro() as any;
   const { tasks } = useAppwriteTasksContext();
-  const { notes, createNote, updateNote } = useNotes();
+  const { notes, createNote, updateNote } = useAppwriteNotes();
   // Reflection prompt state
   const [pendingReflection, setPendingReflection] = useState<{taskId: string; sessionId: string} | null>(null);
   const seenSessionIdsRef = useRef<Set<string>>(new Set());
@@ -131,8 +131,11 @@ export default function TimerPage() {
       if(!existingNote){
         const task = tasks.find(t=> t.id===currentTaskId);
         if(task){
-          const newN = createNote(task.title, null, '', currentTaskId);
-          setPanelNoteId(newN.id);
+          createNote(task.title, null, '', currentTaskId).then(newN => {
+            setPanelNoteId(newN.id);
+          }).catch(err => {
+            console.error('Failed to create note:', err);
+          });
         }
       } else {
         setPanelNoteId(existingNote.id);
@@ -147,6 +150,15 @@ export default function TimerPage() {
       setPanelNoteId(existingNote? existingNote.id : null);
     }
   }, [currentTaskId, existingNote]);
+
+  // Handler for updating notes asynchronously
+  const handleUpdateNote = useCallback(async (noteId: string, patch: Partial<{title: string; body: string}>) => {
+    try {
+      await updateNote(noteId, patch);
+    } catch (error) {
+      console.error('Failed to update note:', error);
+    }
+  }, [updateNote]);
 
   return (
   <div className="ff-stack" style={{gap:'1.5rem', position:'relative'}}>
@@ -381,22 +393,31 @@ export default function TimerPage() {
                       updateSessionProductivity(pendingReflection.sessionId, rating);
                     }
                     
+                    // Handle note creation/update asynchronously
                     if(pendingReflection?.taskId){
-                      let note = notes.find(n=> n.taskId===pendingReflection.taskId);
-                      if(!note){
-                        const task = tasks.find(t=> t.id===pendingReflection.taskId);
-                        if(task){ note = createNote(task.title, null, '', pendingReflection.taskId); }
-                      }
-                      if(note){
-                        const now = new Date();
-                        const datePart = now.toLocaleDateString(undefined,{year:'numeric', month:'short', day:'numeric'});
-                        const timePart = now.toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'});
-                        const emoji = label === 'Great focus' ? '🟢' : label === 'Some distractions' ? '🟡' : '🔴';
-                        // New concise reflection line (EASY PARSE MARKER at start)
-                        const line = `${emoji} ${label} — ${datePart} ${timePart}`;
-                        const addition = (note.body.endsWith('\n') || note.body==='') ? line : `\n${line}`;
-                        updateNote(note.id, { body: note.body + addition });
-                      }
+                      (async () => {
+                        try {
+                          let note = notes.find(n=> n.taskId===pendingReflection.taskId);
+                          if(!note){
+                            const task = tasks.find(t=> t.id===pendingReflection.taskId);
+                            if(task){ 
+                              note = await createNote(task.title, null, '', pendingReflection.taskId);
+                            }
+                          }
+                          if(note){
+                            const now = new Date();
+                            const datePart = now.toLocaleDateString(undefined,{year:'numeric', month:'short', day:'numeric'});
+                            const timePart = now.toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'});
+                            const emoji = label === 'Great focus' ? '🟢' : label === 'Some distractions' ? '🟡' : '🔴';
+                            // New concise reflection line (EASY PARSE MARKER at start)
+                            const line = `${emoji} ${label} — ${datePart} ${timePart}`;
+                            const addition = (note.body.endsWith('\n') || note.body==='') ? line : `\n${line}`;
+                            await updateNote(note.id, { body: note.body + addition });
+                          }
+                        } catch (error) {
+                          console.error('Failed to update note:', error);
+                        }
+                      })();
                     }
                     setPendingReflection(null);
                   }}
@@ -430,13 +451,13 @@ export default function TimerPage() {
                   <div className="ff-stack" style={{gap:'.4rem', flexGrow:1}}>
                     <input
                       value={note.title}
-                      onChange={e=> updateNote(note.id,{title:e.target.value})}
+                      onChange={e=> handleUpdateNote(note.id,{title:e.target.value})}
                       aria-label="Note title"
                       style={{fontSize:'.7rem', fontWeight:600, padding:'.35rem .45rem', border:'1px solid var(--border)', borderRadius:4, background:'var(--surface-1)'}}
                     />
                     <textarea
                       value={note.body}
-                      onChange={e=> updateNote(note.id,{body:e.target.value})}
+                      onChange={e=> handleUpdateNote(note.id,{body:e.target.value})}
                       aria-label="Note body"
                       style={{flexGrow:1, resize:'vertical', minHeight:'8rem', fontSize:'.65rem', lineHeight:1.4, fontFamily:'inherit'}}
                       placeholder="Write your notes for this task..."

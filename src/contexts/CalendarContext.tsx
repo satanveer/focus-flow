@@ -176,10 +176,10 @@ interface CalendarContextType {
     isConnected: boolean;
     isConnecting: boolean;
     connect: () => Promise<void>;
-    disconnect: () => void;
+    disconnect: () => Promise<void>;
     sync: (options?: { direction?: 'pull' | 'push' | 'both'; dryRun?: boolean }) => Promise<SyncResult>;
     lastSyncTime?: Date;
-    refreshConnectionState: () => void;
+    refreshConnectionState: () => Promise<void>;
   };
   
   // Sync settings
@@ -223,16 +223,29 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
   
   // Initialize Google Calendar connection state
   useEffect(() => {
-    setGoogleConnected(googleCalendarService.isAuthenticated());
+    const checkConnection = async () => {
+      try {
+        const isConnected = await googleCalendarService.hasValidTokens();
+        setGoogleConnected(isConnected);
+      } catch (error) {
+        console.error('Failed to check Google Calendar connection:', error);
+        setGoogleConnected(false);
+      }
+    };
+    checkConnection();
   }, []);
 
   // Function to refresh Google connection state (for OAuth callback)
-  const refreshGoogleConnectionState = useCallback(() => {
-    const isConnected = googleCalendarService.isAuthenticated();
-    setGoogleConnected(isConnected);
-    if (isConnected) {
-      calendarSyncService.updateLastSyncTime();
-      console.log('Google Calendar connection state refreshed - connected');
+  const refreshGoogleConnectionState = useCallback(async () => {
+    try {
+      const isConnected = await googleCalendarService.hasValidTokens();
+      setGoogleConnected(isConnected);
+      if (isConnected) {
+        calendarSyncService.updateLastSyncTime();
+      }
+    } catch (error) {
+      console.error('Failed to refresh Google Calendar connection state:', error);
+      setGoogleConnected(false);
     }
   }, []);
 
@@ -263,9 +276,15 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
     }
   }, [isGoogleConnecting]);
 
-  const disconnectGoogleCalendar = useCallback(() => {
-    googleCalendarService.clearAccessToken();
-    setGoogleConnected(false);
+  const disconnectGoogleCalendar = useCallback(async () => {
+    try {
+      await googleCalendarService.clearAccessToken();
+      setGoogleConnected(false);
+    } catch (error) {
+      console.error('Failed to disconnect Google Calendar:', error);
+      // Still set to false even if clearing fails
+      setGoogleConnected(false);
+    }
   }, []);
 
   const syncGoogleCalendar = useCallback(async (options?: { direction?: 'pull' | 'push' | 'both'; dryRun?: boolean }) => {
@@ -446,7 +465,8 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
       console.log('✅ Converted event:', newEvent);
       
       // Also create event in Google Calendar if authenticated
-      if (googleCalendarService.isAuthenticated()) {
+      const hasValidTokens = await googleCalendarService.hasValidTokens();
+      if (hasValidTokens) {
         try {
           console.log('📅 Creating event in Google Calendar...');
           const googleEventData = googleCalendarService.createFocusSessionEvent({
@@ -534,9 +554,9 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
   }, [state.events, createEvent]);
 
   // Focus session integration
-  const createFocusSession = useCallback(async (event: CalendarEvent) => {
+  const createFocusSession = useCallback(async (_event: CalendarEvent) => {
     // This would integrate with PomodoroContext to start a focus session
-    console.log('Creating focus session for event:', event.title);
+    // Implementation placeholder
   }, []);
 
   const scheduleTaskOnCalendar = useCallback(async (taskId: string, startTime: Date, duration = 1500) => {
@@ -615,16 +635,15 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
   // Placeholder implementations for advanced features
   const createTimeBlock = useCallback(async (timeBlock: Omit<TimeBlock, 'id'>) => {
     // Implementation would go here
-    console.log('Creating time block:', timeBlock);
     return { ...timeBlock, id: 'temp-id' };
   }, []);
 
-  const optimizeSchedule = useCallback(async (date: Date) => {
-    console.log('Optimizing schedule for:', date);
+  const optimizeSchedule = useCallback(async (_date: Date) => {
+    // Implementation would go here
   }, []);
 
-  const updateGoalProgress = useCallback(async (minutes: number, date?: Date) => {
-    console.log('Updating goal progress:', minutes, date);
+  const updateGoalProgress = useCallback(async (_minutes: number, _date?: Date) => {
+    // Implementation would go here
   }, []);
 
   const getDailyGoal = useCallback((date: Date) => {

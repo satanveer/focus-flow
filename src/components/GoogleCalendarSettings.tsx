@@ -7,33 +7,37 @@ export const GoogleCalendarSettings: React.FC = () => {
 
   // Check for OAuth success/error messages
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const googleAuth = urlParams.get('google_auth');
-    const errorMessage = urlParams.get('message');
+    const handleAuthMessage = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const googleAuth = urlParams.get('google_auth');
+      const errorMessage = urlParams.get('message');
 
-    if (googleAuth === 'success') {
-      setAuthMessage({ type: 'success', message: 'Google Calendar connected successfully!' });
-      
-      // Refresh the Google Calendar connection state
-      googleCalendar.refreshConnectionState();
-      
-      // Clear the URL parameter
-      window.history.replaceState({}, '', window.location.pathname);
-      
-      // Clear message after 5 seconds
-      setTimeout(() => setAuthMessage(null), 5000);
-    } else if (googleAuth === 'error') {
-      setAuthMessage({ 
-        type: 'error', 
-        message: errorMessage ? decodeURIComponent(errorMessage) : 'Failed to connect Google Calendar' 
-      });
-      // Clear the URL parameter
-      window.history.replaceState({}, '', window.location.pathname);
-      
-      // Clear message after 10 seconds
-      setTimeout(() => setAuthMessage(null), 10000);
-    }
-  }, []);
+      if (googleAuth === 'success') {
+        setAuthMessage({ type: 'success', message: 'Google Calendar connected successfully!' });
+        
+        // Refresh the Google Calendar connection state
+        await googleCalendar.refreshConnectionState();
+        
+        // Clear the URL parameter
+        window.history.replaceState({}, '', window.location.pathname);
+        
+        // Clear message after 5 seconds
+        setTimeout(() => setAuthMessage(null), 5000);
+      } else if (googleAuth === 'error') {
+        setAuthMessage({ 
+          type: 'error', 
+          message: errorMessage ? decodeURIComponent(errorMessage) : 'Failed to connect Google Calendar' 
+        });
+        // Clear the URL parameter
+        window.history.replaceState({}, '', window.location.pathname);
+        
+        // Clear message after 10 seconds
+        setTimeout(() => setAuthMessage(null), 10000);
+      }
+    };
+    
+    handleAuthMessage();
+  }, [googleCalendar]);
 
   const handleConnect = async () => {
     try {

@@ -53,48 +53,101 @@ export class GoogleCalendarService {
   private refreshToken: string | null = null;
   private tokenExpiry: number | null = null;
   private readonly calendarId = 'primary';
+  private tokensInitialized = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    // Restore tokens from localStorage on initialization
-    const storedAccessToken = localStorage.getItem('google_calendar_token');
-    const storedRefreshToken = localStorage.getItem('google_calendar_refresh_token');
-    const storedExpiry = localStorage.getItem('google_calendar_token_expiry');
-    
-    if (storedAccessToken) {
-      this.accessToken = storedAccessToken;
-    }
-    if (storedRefreshToken) {
-      this.refreshToken = storedRefreshToken;
-    }
-    if (storedExpiry) {
-      this.tokenExpiry = parseInt(storedExpiry);
+    // Don't initialize tokens in constructor - wait until they're needed
+  }
+
+  // Initialize tokens from Appwrite user preferences (lazy loading)
+  private async initializeTokens() {
+    // Prevent multiple simultaneous initializations
+    if (this.tokensInitialized) {
+      return;
     }
     
-    // Auto-refresh token if it's expired or about to expire
-    this.checkAndRefreshToken();
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      try {
+        const { GoogleCalendarTokenManager } = await import('./googleCalendarTokens');
+        const tokens = await GoogleCalendarTokenManager.getTokens();
+        
+        if (tokens) {
+          this.accessToken = tokens.access_token;
+          this.refreshToken = tokens.refresh_token || null;
+          this.tokenExpiry = tokens.expires_at || null;
+          
+          // Auto-refresh token if it's expired or about to expire
+          await this.checkAndRefreshToken();
+        }
+        
+        this.tokensInitialized = true;
+      } catch (error: any) {
+        // If user is not authenticated yet (401), silently skip
+        if (error?.code !== 401) {
+          console.error('Failed to load Google Calendar tokens:', error);
+        }
+        this.tokensInitialized = true;
+      } finally {
+        this.initPromise = null;
+      }
+    })();
+
+    return this.initPromise;
   }
 
   // Set the access token and related info (called after OAuth)
-  setAccessToken(token: string, refreshToken?: string, expiresIn?: number) {
+  async setAccessToken(token: string, refreshToken?: string, expiresIn?: number) {
     this.accessToken = token;
-    localStorage.setItem('google_calendar_token', token);
     
     if (refreshToken) {
       this.refreshToken = refreshToken;
-      localStorage.setItem('google_calendar_refresh_token', refreshToken);
     }
     
     if (expiresIn) {
       this.tokenExpiry = Date.now() + (expiresIn * 1000);
-      localStorage.setItem('google_calendar_token_expiry', this.tokenExpiry.toString());
+    }
+
+    // Save to Appwrite preferences
+    try {
+      const { GoogleCalendarTokenManager } = await import('./googleCalendarTokens');
+      await GoogleCalendarTokenManager.saveTokens({
+        access_token: token,
+        refresh_token: refreshToken,
+        expires_at: this.tokenExpiry || undefined,
+        token_type: 'Bearer',
+        scope: 'https://www.googleapis.com/auth/calendar'
+      });
+      console.log('✅ Google Calendar tokens saved to Appwrite');
+    } catch (error) {
+      console.error('❌ Failed to save tokens to Appwrite:', error);
+      // Fallback to localStorage
+      localStorage.setItem('google_calendar_token', token);
+      if (refreshToken) localStorage.setItem('google_calendar_refresh_token', refreshToken);
+      if (this.tokenExpiry) localStorage.setItem('google_calendar_token_expiry', this.tokenExpiry.toString());
     }
   }
 
   // Remove access token (for disconnect)
-  clearAccessToken() {
+  async clearAccessToken() {
     this.accessToken = null;
     this.refreshToken = null;
     this.tokenExpiry = null;
+    
+    // Clear from Appwrite preferences
+    try {
+      const { GoogleCalendarTokenManager } = await import('./googleCalendarTokens');
+      await GoogleCalendarTokenManager.clearTokens();
+      console.log('✅ Google Calendar tokens cleared from Appwrite');
+    } catch (error) {
+      console.error('❌ Failed to clear tokens from Appwrite:', error);
+    }
+    
+    // Also clear localStorage (fallback)
     localStorage.removeItem('google_calendar_token');
     localStorage.removeItem('google_calendar_refresh_token');
     localStorage.removeItem('google_calendar_token_expiry');
@@ -125,8 +178,8 @@ export class GoogleCalendarService {
       throw new Error('No refresh token available');
     }
 
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
+    const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
+    const clientSecret = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       throw new Error('Google OAuth credentials not configured');
@@ -159,21 +212,32 @@ export class GoogleCalendarService {
     this.setAccessToken(data.access_token, undefined, data.expires_in);
   }
 
-  // Check if we have a valid token
+  // Check if we have a valid token (synchronous - only checks memory)
   isAuthenticated(): boolean {
     return !!this.accessToken && !this.isTokenExpired();
   }
 
+  // Check if we have valid tokens (async - checks Appwrite preferences)
+  async hasValidTokens(): Promise<boolean> {
+    try {
+      await this.initializeTokens();
+      return this.isAuthenticated();
+    } catch (error) {
+      // If we can't check tokens (e.g., user not logged in yet), return false
+      return false;
+    }
+  }
+
   // Get authorization URL for OAuth
   getAuthUrl(): string {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
     
     // Use the exact current origin to avoid redirect URI mismatches
     const redirectUri = `${window.location.origin}/auth/google-calendar`;
     const scope = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events';
     
     if (!clientId) {
-      throw new Error('VITE_GOOGLE_CLIENT_ID is not configured');
+      throw new Error('VITE_GOOGLE_CALENDAR_CLIENT_ID is not configured');
     }
     
     const params = new URLSearchParams({
@@ -185,33 +249,27 @@ export class GoogleCalendarService {
       prompt: 'consent'
     });
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-    console.log('Full OAuth URL:', authUrl);
-    
-    return authUrl;
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
 
   // Exchange authorization code for access token
-  async exchangeCodeForToken(code: string): Promise<string> {
-    console.log('🔄 Exchanging authorization code for token...');
-    
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
+  async exchangeCodeForToken(code: string): Promise<{
+    access_token: string;
+    refresh_token?: string;
+    expires_at: number;
+    token_type: string;
+    scope: string;
+  }> {
+    const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
+    const clientSecret = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_SECRET;
     const redirectUri = `${window.location.origin}/auth/google-calendar`;
     
-    console.log('Token exchange parameters:', {
-      clientId: clientId ? `${clientId.substring(0, 20)}...` : 'MISSING',
-      clientSecret: clientSecret ? 'SET' : 'MISSING',
-      redirectUri,
-      code: code ? `${code.substring(0, 20)}...` : 'MISSING'
-    });
-    
     if (!clientId) {
-      throw new Error('VITE_GOOGLE_CLIENT_ID is not configured in environment variables');
+      throw new Error('VITE_GOOGLE_CALENDAR_CLIENT_ID is not configured in environment variables');
     }
     
     if (!clientSecret) {
-      throw new Error('VITE_GOOGLE_CLIENT_SECRET is not configured in environment variables');
+      throw new Error('VITE_GOOGLE_CALENDAR_CLIENT_SECRET is not configured in environment variables');
     }
     
     const tokenRequestBody = new URLSearchParams({
@@ -221,8 +279,6 @@ export class GoogleCalendarService {
       grant_type: 'authorization_code',
       redirect_uri: redirectUri,
     });
-    
-    console.log('Making token exchange request to Google...');
     
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -234,31 +290,30 @@ export class GoogleCalendarService {
 
     const data = await response.json();
     
-    console.log('Token exchange response:', { 
-      ok: response.ok, 
-      status: response.status,
-      statusText: response.statusText,
-      hasAccessToken: !!data.access_token,
-      hasRefreshToken: !!data.refresh_token,
-      expiresIn: data.expires_in,
-      error: data.error,
-      errorDescription: data.error_description 
-    });
-    
     if (!response.ok) {
       const errorMsg = data.error_description || `Token exchange failed: ${data.error || 'Unknown error'}`;
-      console.error('❌ Token exchange failed:', errorMsg);
+      console.error('Token exchange failed:', errorMsg);
       throw new Error(errorMsg);
     }
 
     // Store both access token and refresh token
     this.setAccessToken(data.access_token, data.refresh_token, data.expires_in);
-    console.log('✅ Token exchange successful');
-    return data.access_token;
+    
+    // Return the full token object for storage in Appwrite
+    return {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Date.now() + (data.expires_in * 1000),
+      token_type: data.token_type,
+      scope: data.scope
+    };
   }
 
   // Make authenticated request to Google Calendar API
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+    // Initialize tokens first (lazy loading)
+    await this.initializeTokens();
+    
     // Check and refresh token if needed before making request
     await this.checkAndRefreshToken();
     
@@ -333,28 +388,15 @@ export class GoogleCalendarService {
 
   // Create a new event
   async createEvent(event: GoogleCalendarEvent): Promise<GoogleCalendarEvent> {
-    console.log('📅 GoogleCalendarService.createEvent called with:', {
-      summary: event.summary,
-      start: event.start,
-      end: event.end,
-      description: event.description?.substring(0, 100) + '...'
-    });
-    
     try {
       const result = await this.makeRequest(`/calendars/${this.calendarId}/events`, {
         method: 'POST',
         body: JSON.stringify(event),
       });
       
-      console.log('✅ GoogleCalendarService.createEvent successful:', {
-        id: result.id,
-        summary: result.summary,
-        htmlLink: result.htmlLink
-      });
-      
       return result;
     } catch (error) {
-      console.error('❌ GoogleCalendarService.createEvent failed:', error);
+      console.error('Google Calendar: Failed to create event:', error);
       throw error;
     }
   }
@@ -390,28 +432,37 @@ export class GoogleCalendarService {
   }): GoogleCalendarEvent {
     const { title, startTime, endTime, taskTitle, productivity, duration } = sessionData;
     
-    // Create a clean, professional title
-    const eventTitle = title || (taskTitle ? `🎯 Focus: ${taskTitle}` : '🎯 Focus Session');
+    // Create a clean, professional title - use taskTitle if available
+    const eventTitle = title || (taskTitle ? `🎯 ${taskTitle}` : '🎯 Focus Session');
     const durationMinutes = Math.floor(duration / 60);
+    const durationHours = Math.floor(durationMinutes / 60);
+    const remainingMinutes = durationMinutes % 60;
+    
+    // Format duration nicely
+    let durationText = '';
+    if (durationHours > 0) {
+      durationText = `${durationHours}h ${remainingMinutes}m`;
+    } else {
+      durationText = `${durationMinutes} minute${durationMinutes !== 1 ? 's' : ''}`;
+    }
     
     // Create comprehensive description
-    let description = `📚 Focus Session Completed\n\n`;
-    description += `⏱️ Duration: ${durationMinutes} minutes\n`;
-    description += `📅 Started: ${startTime.toLocaleString()}\n`;
-    description += `🏁 Ended: ${endTime.toLocaleString()}\n`;
+    let description = `🎯 **Deep Focus Session**\n\n`;
+    description += `**Duration:** ${durationText}\n`;
     
     if (taskTitle) {
-      description += `\n📝 Task Worked On:\n${taskTitle}\n`;
+      description += `**Task:** ${taskTitle}\n`;
     }
     
     if (productivity) {
-      const productivityEmoji = productivity === 'great' ? '🚀' : productivity === 'some-distractions' ? '⚡' : '💭';
-      const productivityText = productivity === 'great' ? 'Excellent Focus' : productivity === 'some-distractions' ? 'Some Distractions' : 'Unfocused';
-      description += `\n${productivityEmoji} Productivity Rating: ${productivityText}\n`;
+      const productivityEmoji = productivity === 'great' ? '🌟' : productivity === 'some-distractions' ? '⚡' : '💭';
+      const productivityText = productivity === 'great' ? 'Excellent Focus - Great Work!' : productivity === 'some-distractions' ? 'Good Work with Minor Distractions' : 'Challenging Session - Keep Going!';
+      description += `**Focus Quality:** ${productivityEmoji} ${productivityText}\n`;
     }
     
-    description += `\n� Logged automatically by Focus Flow`;
-    description += `\n\n💡 This focused work session helps you track your productivity and stay accountable to your goals.`;
+    description += `\n---\n`;
+    description += `📊 Logged automatically by Focus Flow\n`;
+    description += `💡 Track your productivity and build momentum towards your goals!`;
 
     return {
       summary: eventTitle,

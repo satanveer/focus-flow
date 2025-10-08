@@ -55,21 +55,27 @@ export function useAppwriteTasks() {
 
   // Load tasks from Appwrite
   const loadTasks = useCallback(async () => {
+    // IMPORTANT: Clear tasks immediately if no user
     if (!user || !isAuthenticated) {
+      console.log('🧹 Clearing tasks - no authenticated user');
       setTasks([]);
       setLoading(false);
+      setError(null);
       return;
     }
 
     try {
+      console.log('📥 Loading tasks for user:', user.$id.substring(0, 8) + '...');
       setLoading(true);
       setError(null);
       const appwriteTasks = await taskService.getTasks(user.$id);
       const domainTasks = appwriteTasks.map(task => appwriteTaskToTask(task as any));
+      console.log('✅ Loaded', domainTasks.length, 'tasks for user:', user.email);
       setTasks(domainTasks);
     } catch (error) {
       console.error('Failed to load tasks:', error);
       setError('Failed to load tasks');
+      setTasks([]); // Clear tasks on error too
     } finally {
       setLoading(false);
     }

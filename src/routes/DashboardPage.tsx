@@ -74,6 +74,7 @@ export default function DashboardPage() {
                 <h1 style={{fontSize:'1.45rem', fontWeight:600}}>Dashboard</h1>
                 <p style={{fontSize:'.75rem', color:'var(--text-muted)'}}>Your snapshot of focus, tasks, and progress.</p>
             </header>
+            
             <FocusGoalBar />
             <div className="dashboard-grid" style={{display:'grid', gap:'1rem', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))'}}>
                 {/* Mini Timer Widget */}

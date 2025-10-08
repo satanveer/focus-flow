@@ -5,7 +5,7 @@ import type { Task } from '../../../domain/models';
 import { useAppwriteTasksContext } from '../AppwriteTasksContext';
 import { usePomodoro } from '../../pomodoro/PomodoroContext';
 import { Link } from 'react-router-dom';
-import { useNotes } from '../../notes/NotesContext';
+import { useAppwriteNotes } from '../../notes/AppwriteNotesContext';
 
 function tagColor(tag: string) {
   // Simple hash to h(0-359)
@@ -31,7 +31,7 @@ function dueInfo(task: Task) {
 export const TaskItem: React.FC<Props> = ({ task }) => {
   const { toggleTask, removeTask } = useAppwriteTasksContext();
   const { sessions } = usePomodoro();
-  const { createNote, notes, updateNote } = useNotes();
+  const { createNote, notes, updateNote } = useAppwriteNotes();
   const [showNote, setShowNote] = useState(false);
   const popRef = useRef<HTMLDivElement|null>(null);
   const existingLinked = notes.find(n => n.taskId === task.id);
@@ -40,6 +40,16 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
 
   const focusSessions = useMemo(() => sessions.filter(s => s.taskId === task.id && s.mode==='focus' && s.endedAt).sort((a,b)=> new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()), [sessions, task.id]);
   const totalMinutes = useMemo(()=> Math.round(focusSessions.reduce((a,b)=> a + b.durationSec, 0)/60), [focusSessions]);
+  
+  // Handler for async note updates
+  const handleUpdateNote = async (noteId: string, patch: {body: string}) => {
+    try {
+      await updateNote(noteId, patch);
+    } catch (error) {
+      console.error('Failed to update note:', error);
+    }
+  };
+  
   // Centered modal behaviors: esc close, focus trap, body scroll lock, focus restore
   useEffect(()=> {
     if(!showNote) return;
@@ -130,9 +140,13 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
       </div>
       <div className="ff-row" style={{gap:'.5rem', flexWrap:'wrap', justifyContent:'flex-end'}}>
         <Link to={`/timer?taskId=${task.id}&autoStart=1`} className="btn primary" style={{fontSize:'.7rem', minWidth:'auto'}} aria-label="Focus with Pomodoro">Focus</Link>
-        <button ref={anchorRef} className="btn subtle" style={{fontSize:'.7rem', minWidth:'auto'}} aria-label={existingLinked? 'Open note for task':'Add note for task'} onClick={()=> {
+        <button ref={anchorRef} className="btn subtle" style={{fontSize:'.7rem', minWidth:'auto'}} aria-label={existingLinked? 'Open note for task':'Add note for task'} onClick={async ()=> {
           if(!existingLinked){
-            createNote(task.title, null, '', task.id);
+            try {
+              await createNote(task.title, null, '', task.id);
+            } catch (error) {
+              console.error('Failed to create note:', error);
+            }
           }
           setShowNote(s=> !s);
         }}>{existingLinked? 'Note':'Add Note'}</button>
@@ -181,7 +195,7 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
               return (
                 <textarea
                   value={note.body}
-                  onChange={e=> updateNote(note.id,{body:e.target.value})}
+                  onChange={e=> handleUpdateNote(note.id,{body:e.target.value})}
                   aria-label="Note body"
                   style={{width:'100%', flexGrow:1, minHeight:'14rem', fontSize:'.7rem', fontFamily:'inherit', resize:'vertical', lineHeight:1.4}}
                   placeholder="Write your notes for this task here..."

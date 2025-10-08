@@ -76,18 +76,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(async () => {
     try {
       await authService.logout();
+      
+      // Clear only authentication-related data from localStorage
+      // Google Calendar tokens
+      localStorage.removeItem('google_calendar_token');
+      localStorage.removeItem('google_calendar_refresh_token');
+      localStorage.removeItem('google_calendar_token_expiry');
+      localStorage.removeItem('needs_calendar_oauth');
+      localStorage.removeItem('google_auth_return_path');
+      localStorage.removeItem('auto_calendar_connect');
+      
+      // Clear any cached auth flags
+      localStorage.removeItem('oauth_flow_started');
+      localStorage.removeItem('oauth_start_time');
+      
+      // DO NOT clear user data:
+      // - Notes are now in Appwrite (AppwriteNotesContext)
+      // - Pomodoro sessions remain in localStorage ('ff/pomodoro') - user-specific
+      // - Tasks are in Appwrite (AppwriteTasksContext)
+      // The data is user-specific and will be loaded correctly on next login
+      
       setState({
         user: null,
         loading: false,
         isAuthenticated: false,
       });
+      
+      // Force reload to clear all React state
+      window.location.href = '/';
     } catch (error) {
       // Force logout on client side even if server request fails
+      localStorage.clear(); // Clear everything on error
       setState({
         user: null,
         loading: false,
         isAuthenticated: false,
       });
+      window.location.href = '/';
     }
   }, []);
 
@@ -101,16 +126,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Check if we have OAuth callback parameters (token-based OAuth) - PRIORITY #1
       if (userId && secret) {
         // Prevent duplicate processing (React StrictMode calls useEffect twice in dev)
-        const tokenKey = `oauth_processed_${userId}`;
-        if (sessionStorage.getItem(tokenKey)) {
-          console.log('🔍 OAuth token already processed, skipping...');
-          return;
-        }
-        sessionStorage.setItem(tokenKey, 'true');
+        const tokenKey = `oauth_processed_${userId}_${secret.substring(0, 8)}`;
+        const alreadyProcessed = sessionStorage.getItem(tokenKey);
         
-        console.log('✅ OAuth TOKEN callback detected - userId and secret received!');
-        console.log('🔍 userId:', userId.substring(0, 10) + '...');
-        console.log('🔍 secret:', secret.substring(0, 10) + '...');
+        if (alreadyProcessed) {
+          // Session was already created, just load it and continue with calendar check
+          try {
+            const user = await authService.getCurrentUser();
+            if (user) {
+              setState({
+                user,
+                isAuthenticated: true,
+                loading: false,
+              });
+              
+              // Check calendar and redirect
+              const { googleCalendarService } = await import('../lib/googleCalendar');
+              const hasCalendarTokens = await googleCalendarService.hasValidTokens();
+              
+              if (!hasCalendarTokens) {
+                localStorage.setItem('google_auth_return_path', '/');
+                localStorage.setItem('auto_calendar_connect', 'true');
+                window.location.href = googleCalendarService.getAuthUrl();
+                return;
+              }
+              
+              window.location.href = '/';
+              return;
+            }
+          } catch (error) {
+            // Session not found, will create new one
+          }
+        }
         
         // Clear the OAuth flow flags
         localStorage.removeItem('oauth_flow_started');
@@ -120,42 +167,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setState(prev => ({ ...prev, loading: true }));
           
           // Use the handleOAuthTokenCallback to create the session
-          console.log('🔍 Creating session from OAuth token parameters...');
           const user = await authService.handleOAuthTokenCallback(userId, secret);
           
+          // Mark as processed ONLY after successful session creation
+          sessionStorage.setItem(tokenKey, 'true');
+          
           if (user) {
-            console.log('✅✅✅ OAuth authentication SUCCESSFUL!');
-            console.log('✅ User:', user.email);
-            console.log('✅ User ID:', user.$id);
-            
             setState({
               user,
               isAuthenticated: true,
               loading: false,
             });
             
+            // Check if this is a first-time login (no calendar connected yet)
+            // Import dynamically to avoid circular dependencies
+            const { googleCalendarService } = await import('../lib/googleCalendar');
+            const hasCalendarTokens = await googleCalendarService.hasValidTokens();
+            
+            if (!hasCalendarTokens) {
+              // Save current state and automatically redirect to Calendar OAuth
+              localStorage.setItem('google_auth_return_path', '/');
+              localStorage.setItem('auto_calendar_connect', 'true');
+              
+              // Redirect immediately to Google Calendar OAuth
+              window.location.href = googleCalendarService.getAuthUrl();
+              return;
+            }
+            
             // Clean up URL parameters and redirect to home
             window.location.href = '/';
             
             return;
           } else {
-            console.error('❌ handleOAuthTokenCallback returned null user');
+            console.error('OAuth token callback: handleOAuthTokenCallback returned null user');
             throw new Error('Failed to create user session from OAuth token');
           }
         } catch (error: any) {
-          console.error('❌ OAuth TOKEN authentication failed:', error);
+          console.error('OAuth TOKEN authentication failed:', error);
           
           // Check if it's a rate limit error
           if (error.message?.includes('Rate limit') || error.code === 429) {
-            console.log('⏰ Rate limit hit - session was likely created, checking...');
-            
             // Wait a bit and try to get the current user (session might have been created)
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             try {
               const user = await authService.getCurrentUser();
               if (user) {
-                console.log('✅ Session was created! User found:', user.email);
                 setState({
                   user,
                   isAuthenticated: true,
@@ -165,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return;
               }
             } catch (userError) {
-              console.log('❌ Could not retrieve user after rate limit');
+              // Could not retrieve user after rate limit
             }
           }
           
@@ -196,10 +253,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isRecentOAuth = oauthStartTime && (Date.now() - parseInt(oauthStartTime)) < 120000;
       
       if (isOAuthCallback && isRecentOAuth) {
-        console.log('🔍 OAuth callback detected (session-based) - Appwrite should have set session cookies');
-        console.log('🔍 Referrer:', document.referrer);
-        console.log('🔍 Waiting for session to be available...');
-        
         // Clear the OAuth flow flags
         localStorage.removeItem('oauth_flow_started');
         localStorage.removeItem('oauth_start_time');
@@ -217,26 +270,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const tryGetUser = async () => {
           attempts++;
-          console.log(`🔍 Attempt ${attempts}/${maxAttempts} to get authenticated user...`);
           
           try {
             // First check if there's an active session
             const session = await authService.checkActiveSession();
             
             if (session) {
-              console.log('🔍 ✅ Active session found:', session.$id);
-              
               // Now get the user
               const user = await authService.getCurrentUser();
               
               if (user) {
-                console.log('✅ OAuth authentication successful:', user.email);
-                
                 // Create default settings if needed
                 try {
                   await authService.handleOAuthCallback();
                 } catch (settingsError) {
-                  console.log('🔍 Settings handling completed');
+                  // Settings handling completed
                 }
                 
                 setState({
@@ -249,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
           } catch (error: any) {
-            console.log(`🔍 Attempt ${attempts} failed:`, error.message);
+            // Retry on error
           }
           
           // Retry if we haven't reached max attempts
@@ -616,14 +664,11 @@ const LoginPage: React.FC = () => {
                 type="button"
                 onClick={async () => {
                   try {
-                    console.log('🔍 Google sign-in button clicked');
                     setLoading(true);
                     setError(''); // Clear any previous errors
-                    console.log('🔍 Calling loginWithGoogle...');
                     await loginWithGoogle();
-                    console.log('🔍 loginWithGoogle completed');
                   } catch (error) {
-                    console.error('🔍 Google sign-in error:', error);
+                    console.error('Google sign-in error:', error);
                     setError('Google sign-in failed. Please try again.');
                     setLoading(false);
                   }
