@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import type { ID, PomodoroMode, PomodoroSession, ProductivityRating } from '../../domain/models';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState';
 import { googleCalendarService } from '../../lib/googleCalendar';
 import { useTasksContext } from '../tasks/TasksContext';
+import { useAppwritePomodoro } from './AppwritePomodoroContext';
 
 interface ActiveTimer {
   sessionId: ID;
@@ -52,8 +53,11 @@ const DEFAULTS = { focus: 25 * 60, shortBreak: 5 * 60, longBreak: 15 * 60 };
 const PomodoroContext = createContext<PomodoroContextValue | null>(null);
 
 export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useLocalStorageState<PomodoroState>('ff/pomodoro', {
-    sessions: [],
+  // Use Appwrite for sessions storage
+  const { sessions: appwriteSessions, createSession: createAppwriteSession, updateSession: updateAppwriteSession } = useAppwritePomodoro();
+  
+  // Use localStorage only for settings (not sessions)
+  const [settings, setSettings] = useLocalStorageState<Omit<PomodoroState, 'sessions'>>('ff/pomodoro-settings', {
     active: undefined,
     focusDurations: DEFAULTS,
     autoStartNext: false,
@@ -65,6 +69,78 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     enableNotifications: false,
     showTimerInTab: true,
   });
+  
+  // Track which sessions have been saved to avoid duplicates
+  const savedSessionIdsRef = useRef<Set<string>>(new Set());
+  
+  // Combine Appwrite sessions with localStorage settings
+  const [state, setState] = useState<PomodoroState>({
+    ...settings,
+    sessions: appwriteSessions,
+  });
+  
+  // Update state when Appwrite sessions change
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      sessions: appwriteSessions,
+    }));
+  }, [appwriteSessions]);
+  
+  // Update state when settings change
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      ...settings,
+    }));
+  }, [settings]);
+  
+  // Custom setState that intercepts session additions and saves to Appwrite
+  const setStateWithAppwrite = useCallback((updater: (prev: PomodoroState) => PomodoroState) => {
+    setState(prevState => {
+      const newState = updater(prevState);
+      
+      // Check if new sessions were added
+      if (newState.sessions.length > prevState.sessions.length) {
+        const newSessions = newState.sessions.filter(
+          ns => !prevState.sessions.some(ps => ps.id === ns.id)
+        );
+        
+        // Save new sessions to Appwrite (async, don't block state update)
+        newSessions.forEach(session => {
+          if (!savedSessionIdsRef.current.has(session.id)) {
+            savedSessionIdsRef.current.add(session.id);
+            createAppwriteSession(session).catch(error => {
+              console.error('Failed to save session to Appwrite:', error);
+              savedSessionIdsRef.current.delete(session.id);
+            });
+          }
+        });
+      }
+      
+      // Update localStorage settings (exclude sessions)
+      const { sessions: _, ...newSettings } = newState;
+      setSettings(newSettings);
+      
+      return newState;
+    });
+  }, [createAppwriteSession, setSettings]);
+  
+  // Also handle session updates
+  const handleUpdateSession = useCallback((sessionId: ID, rating: ProductivityRating) => {
+    // Update in Appwrite
+    updateAppwriteSession(sessionId, { productivityRating: rating }).catch(error => {
+      console.error('Failed to update session in Appwrite:', error);
+    });
+    
+    // Update local state optimistically
+    setState(prev => ({
+      ...prev,
+      sessions: prev.sessions.map(s => 
+        s.id === sessionId ? { ...s, productivityRating: rating } : s
+      ),
+    }));
+  }, [updateAppwriteSession]);
 
   // Try to get tasks context, but handle case where it might not be available
   let tasks: any[] = [];
@@ -184,7 +260,7 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const loop = () => {
       if (getRemaining() <= 0) {
         // finalize session
-        setState(s => {
+        setStateWithAppwrite(s => {
           if (!s.active) return s;
           const { sessionId, mode, startedAt, durationSec, taskId } = s.active;
           const session: PomodoroSession = { id: sessionId, mode, startedAt, durationSec, endedAt: new Date().toISOString(), taskId };
@@ -237,22 +313,22 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
     tickRef.current = requestAnimationFrame(loop);
     return clearTick;
-  }, [state.active, getRemaining, setState]);
+  }, [state.active, getRemaining, setStateWithAppwrite]);
 
   const start: PomodoroContextValue['start'] = ({ mode = 'focus', taskId, durationSec }) => {
     const duration = durationSec || (mode === 'focus' ? state.focusDurations.focus : mode === 'shortBreak' ? state.focusDurations.shortBreak : state.focusDurations.longBreak);
     const now = new Date();
     const end = new Date(now.getTime() + duration * 1000);
-    setState(s => ({ ...s, active: { sessionId: crypto.randomUUID(), taskId, mode, startedAt: now.toISOString(), targetEnd: end.toISOString(), durationSec: duration } }));
+    setStateWithAppwrite(s => ({ ...s, active: { sessionId: crypto.randomUUID(), taskId, mode, startedAt: now.toISOString(), targetEnd: end.toISOString(), durationSec: duration } }));
   };
 
-  const pause = () => setState(s => {
+  const pause = () => setStateWithAppwrite(s => {
     if (!s.active || s.active.paused) return s;
     const remaining = getRemaining();
     return { ...s, active: { ...s.active, paused: true, remainingSec: remaining } };
   });
 
-  const resume = () => setState(s => {
+  const resume = () => setStateWithAppwrite(s => {
     if (!s.active || !s.active.paused) return s;
     const now = new Date();
     const duration = s.active.remainingSec || 0;
@@ -260,9 +336,9 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return { ...s, active: { ...s.active, paused: false, startedAt: now.toISOString(), targetEnd: end.toISOString(), durationSec: s.active.durationSec } };
   });
 
-  const abort = () => setState(s => ({ ...s, active: undefined }));
+  const abort = () => setStateWithAppwrite(s => ({ ...s, active: undefined }));
 
-  const complete = () => setState(s => {
+  const complete = () => setStateWithAppwrite(s => {
     if (!s.active) return s;
     const { sessionId, mode, startedAt, durationSec, taskId, paused, remainingSec } = s.active;
     let credited = durationSec;
@@ -289,39 +365,32 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const updateDurations: PomodoroContextValue['updateDurations'] = (d) => {
-    setState(s => ({ ...s, focusDurations: { ...s.focusDurations, ...d } }));
+    setStateWithAppwrite(s => ({ ...s, focusDurations: { ...s.focusDurations, ...d } }));
   };
 
-  const toggleAutoStart = () => setState(s => ({ ...s, autoStartNext: !s.autoStartNext }));
+  const toggleAutoStart = () => setStateWithAppwrite(s => ({ ...s, autoStartNext: !s.autoStartNext }));
 
   const updateGoal: PomodoroContextValue['updateGoal'] = (minutes) => {
     if (!Number.isFinite(minutes) || minutes <= 0) return;
-    setState(s => ({ ...s, goalMinutes: Math.round(minutes) }));
+    setStateWithAppwrite(s => ({ ...s, goalMinutes: Math.round(minutes) }));
   };
 
   const updateCreditMode: PomodoroContextValue['updateCreditMode'] = (mode) => {
-    setState(s => ({ ...s, creditMode: mode }));
+    setStateWithAppwrite(s => ({ ...s, creditMode: mode }));
   };
 
   const updateLongBreakEvery: PomodoroContextValue['updateLongBreakEvery'] = (n) => {
     if (!Number.isFinite(n) || n < 1 || n > 12) return;
-    setState(s => ({ ...s, longBreakEvery: Math.round(n) }));
+    setStateWithAppwrite(s => ({ ...s, longBreakEvery: Math.round(n) }));
   };
 
-  const toggleSound = () => setState(s => ({ ...s, enableSound: !s.enableSound }));
-  const toggleNotifications = () => setState(s => ({ ...s, enableNotifications: !s.enableNotifications }));
-  const toggleTimerInTab = () => setState(s => ({ ...s, showTimerInTab: !s.showTimerInTab }));
+  const toggleSound = () => setStateWithAppwrite(s => ({ ...s, enableSound: !s.enableSound }));
+  const toggleNotifications = () => setStateWithAppwrite(s => ({ ...s, enableNotifications: !s.enableNotifications }));
+  const toggleTimerInTab = () => setStateWithAppwrite(s => ({ ...s, showTimerInTab: !s.showTimerInTab }));
   
   const updateSessionProductivity = useCallback((sessionId: ID, rating: ProductivityRating) => {
-    setState(s => ({
-      ...s,
-      sessions: s.sessions.map(session => 
-        session.id === sessionId 
-          ? { ...session, productivityRating: rating }
-          : session
-      )
-    }));
-  }, []);
+    handleUpdateSession(sessionId, rating);
+  }, [handleUpdateSession]);
   
   // Auto-request permission when enabling notifications
   useEffect(() => {

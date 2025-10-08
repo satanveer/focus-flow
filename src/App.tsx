@@ -10,6 +10,7 @@ import SettingsPage from "./routes/SettingsPage";
 import GoogleCalendarCallback from "./routes/GoogleCalendarCallback";
 import Layout from "./layouts/Layout";
 import { PomodoroProvider } from './features/pomodoro/PomodoroContext';
+import { AppwritePomodoroProvider } from './features/pomodoro/AppwritePomodoroContext';
 import TabTitleUpdater from './components/TabTitleUpdater';
 
 import { AppwriteNotesProvider } from './features/notes/AppwriteNotesContext';
@@ -30,22 +31,24 @@ function App() {
           <ProtectedRoute>
             <AppwriteTasksProvider>
               <CalendarProvider>
-                <PomodoroProvider>
-                  <TabTitleUpdater />
-                  <AppwriteNotesProvider>
-                    <Routes>
-                      <Route element={<Layout/>}>
-                        <Route index element={<DashboardPage />} />
-                        <Route path="tasks" element={<AppwriteTasksPage />} />
-                        <Route path="calendar" element={<CalendarPage />} />
-                        <Route path="timer" element={<TimerPage />} />
-                        <Route path="notes" element={<NotesPage />} />
-                        <Route path="insights" element={<InsightsPage />} />
-                        <Route path="settings" element={<SettingsPage />} />
-                      </Route>
-                    </Routes>
-                  </AppwriteNotesProvider>
-                </PomodoroProvider>
+                <AppwritePomodoroProvider>
+                  <PomodoroProvider>
+                    <TabTitleUpdater />
+                    <AppwriteNotesProvider>
+                      <Routes>
+                        <Route element={<Layout/>}>
+                          <Route index element={<DashboardPage />} />
+                          <Route path="tasks" element={<AppwriteTasksPage />} />
+                          <Route path="calendar" element={<CalendarPage />} />
+                          <Route path="timer" element={<TimerPage />} />
+                          <Route path="notes" element={<NotesPage />} />
+                          <Route path="insights" element={<InsightsPage />} />
+                          <Route path="settings" element={<SettingsPage />} />
+                        </Route>
+                      </Routes>
+                    </AppwriteNotesProvider>
+                  </PomodoroProvider>
+                </AppwritePomodoroProvider>
               </CalendarProvider>
             </AppwriteTasksProvider>
           </ProtectedRoute>
