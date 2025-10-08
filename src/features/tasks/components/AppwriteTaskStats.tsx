@@ -36,21 +36,15 @@ export const AppwriteTaskProgressBar: React.FC = () => {
   const pct = stats.total === 0 ? 0 : Math.round(stats.completionRate * 100);
   
   return (
-    <div className="card" style={{padding:'1rem', width:'100%'}}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'.5rem'}}>
-        <h3 style={{margin:0, fontSize:'.7rem', letterSpacing:'.08em', textTransform:'uppercase', color:'var(--text-muted)'}}>Overall Progress</h3>
-        <span style={{fontSize:'.7rem', fontWeight:600}}>{loading ? '--' : pct}%</span>
+    <div className="card w-full">
+      <div className="flex justify-between items-baseline mb-2">
+        <h3 className="m-0 text-[0.65rem] sm:text-[0.7rem] tracking-wider uppercase text-[var(--text-muted)]">Overall Progress</h3>
+        <span className="text-[0.65rem] sm:text-[0.7rem] font-semibold">{loading ? '--' : pct}%</span>
       </div>
-      <div style={{position:'relative', height:'14px', borderRadius:'8px', background:'var(--bg-alt)', overflow:'hidden', boxShadow:'inset 0 0 0 1px var(--border)'}} aria-label="Completion progress">
-        <div style={{
-          position:'absolute',
-          top:0,
-          left:0,
-          bottom:0,
+      <div className="relative h-3 sm:h-3.5 rounded-lg bg-[var(--bg-alt)] overflow-hidden shadow-[inset_0_0_0_1px_var(--border)]" aria-label="Completion progress">
+        <div className="absolute top-0 left-0 bottom-0 rounded-lg transition-[width] duration-600 ease-[cubic-bezier(0.4,0,0.2,1)]" style={{
           width: loading ? '0%' : `${pct}%`,
-          background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-accent2) 100%)',
-          transition:'width .6s cubic-bezier(0.4, 0, 0.2, 1)',
-          borderRadius:'8px'
+          background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-accent2) 100%)'
         }} />
       </div>
     </div>

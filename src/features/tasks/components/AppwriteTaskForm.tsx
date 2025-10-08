@@ -47,57 +47,54 @@ export const AppwriteTaskForm: React.FC = () => {
 
   return (
     <div className="card">
-      <form onSubmit={handleSubmit} className="ff-stack" style={{gap:'1rem'}}>
-        <h2 style={{fontSize:'.8rem', fontWeight:600}}>Add New Task</h2>
+      <form onSubmit={handleSubmit} className="ff-stack gap-2 sm:gap-4">
+        <h2 className="text-[0.7rem] sm:text-sm font-semibold">Add New Task</h2>
         
         {(error || contextError) && (
-          <div style={{ 
-            padding: '0.5rem', 
+          <div className="p-1.5 text-[0.65rem] sm:text-sm rounded" style={{ 
             backgroundColor: 'var(--error-bg)', 
-            color: 'var(--error)', 
-            borderRadius: '4px',
-            fontSize: '0.75rem'
+            color: 'var(--error)'
           }}>
             {error || contextError}
           </div>
         )}
         
-        <div className="ff-stack" style={{gap:'.7rem'}}>
+        <div className="ff-stack gap-2 sm:gap-3">
           <div>
-            <label htmlFor="task-title" style={{fontSize:'.7rem', fontWeight:500}}>Title *</label>
+            <label htmlFor="task-title" className="text-[0.6rem] sm:text-[0.7rem] font-medium">Title *</label>
             <input
               id="task-title"
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="What needs to be done?"
-              style={{width:'100%', marginTop:'.25rem'}}
+              className="w-full mt-0.5 sm:mt-1"
               disabled={submitting}
               required
             />
           </div>
           
           <div>
-            <label htmlFor="task-desc" style={{fontSize:'.7rem', fontWeight:500}}>Description</label>
+            <label htmlFor="task-desc" className="text-[0.6rem] sm:text-[0.7rem] font-medium">Description</label>
             <textarea
               id="task-desc"
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Optional details..."
               rows={2}
-              style={{width:'100%', marginTop:'.25rem', resize:'vertical'}}
+              className="w-full mt-0.5 sm:mt-1 resize-vertical"
               disabled={submitting}
             />
           </div>
           
-          <div className="ff-row" style={{gap:'1rem', alignItems:'end', flexWrap:'wrap'}}>
-            <div style={{minWidth:'6rem', flex:'0 0 auto'}}>
-              <label htmlFor="task-priority" style={{fontSize:'.7rem', fontWeight:500}}>Priority</label>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-end">
+            <div className="min-w-0 flex-1 sm:flex-none sm:min-w-24">
+              <label htmlFor="task-priority" className="text-[0.6rem] sm:text-[0.7rem] font-medium">Priority</label>
               <select
                 id="task-priority"
                 value={priority}
                 onChange={e => setPriority(e.target.value as TaskPriority)}
-                style={{width:'100%', marginTop:'.25rem'}}
+                className="w-full mt-0.5 sm:mt-1"
                 disabled={submitting}
               >
                 {priorities.map(p => {
@@ -109,16 +106,16 @@ export const AppwriteTaskForm: React.FC = () => {
               </select>
             </div>
             
-            <div style={{minWidth:'10rem', flex:'1 1 auto'}}>
-              <label htmlFor="task-due" style={{fontSize:'.7rem', fontWeight:500}}>Due Date</label>
-              <div className="date-input" style={{marginTop:'.25rem'}}>
+            <div className="min-w-0 flex-1">
+              <label htmlFor="task-due" className="text-[0.6rem] sm:text-[0.7rem] font-medium">Due Date</label>
+              <div className="date-input mt-0.5 sm:mt-1">
                 <span className="icon" aria-hidden="true">📅</span>
                 <input
                   id="task-due"
                   type="date"
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
-                  style={{width:'100%'}}
+                  className="w-full"
                   disabled={submitting}
                 />
               </div>
@@ -126,23 +123,23 @@ export const AppwriteTaskForm: React.FC = () => {
           </div>
           
           <div>
-            <label htmlFor="task-tags" style={{fontSize:'.7rem', fontWeight:500}}>Tags</label>
+            <label htmlFor="task-tags" className="text-[0.6rem] sm:text-[0.7rem] font-medium">Tags</label>
             <input
               id="task-tags"
               type="text"
               value={tags}
               onChange={e => setTags(e.target.value)}
-              placeholder="work, urgent, project-x (comma separated)"
-              style={{width:'100%', marginTop:'.25rem'}}
+              placeholder="work, urgent"
+              className="w-full mt-0.5 sm:mt-1"
               disabled={submitting}
             />
           </div>
         </div>
         
-        <div className="ff-row" style={{gap:'.5rem', justifyContent:'flex-end'}}>
+        <div className="ff-row gap-1.5 sm:gap-2 justify-end">
           <button
             type="submit"
-            className="btn primary"
+            className="btn primary text-[0.65rem] sm:text-sm"
             disabled={!title.trim() || submitting || loading}
             style={{opacity: submitting ? 0.7 : 1}}
           >

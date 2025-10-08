@@ -88,47 +88,47 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
   }, [showNote]);
 
   return (
-    <li className="task-item" style={{position:'relative', display:'flex', flexDirection:'column', gap:'.75rem', padding:'1rem'}}>
-      <div className="ff-row" style={{gap:'.75rem', alignItems:'flex-start'}}>
-        <label className="chk" aria-label="Toggle complete" style={{marginTop:'.1rem'}}>
+    <li className="task-item p-2 sm:p-4 gap-1.5 sm:gap-3" style={{position:'relative', display:'flex', flexDirection:'column'}}>
+      <div className="ff-row gap-2 sm:gap-3" style={{alignItems:'flex-start'}}>
+        <label className="chk shrink-0" aria-label="Toggle complete" style={{marginTop:'.05rem'}}>
           <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} />
           <span className="chk-box" aria-hidden="true" />
         </label>
-        <div style={{flex:'1', minWidth:0}}>
-          <div className="task-title-wrapper">
-            <button onClick={()=> setOpen(o=> !o)} className="task-title" style={{all:'unset', cursor:'pointer', fontWeight: task.completed ? 400:600, textDecoration: task.completed ? 'line-through':'none', fontSize:'1rem', lineHeight:'1.3'}} aria-expanded={open} aria-controls={`task-focus-${task.id}`} aria-label={`${open? 'Collapse':'Expand'} focus history for task ${task.title}`}>
+        <div className="flex-1 min-w-0">
+          <div className="task-title-wrapper flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <button onClick={()=> setOpen(o=> !o)} className="task-title text-[0.85rem] sm:text-base leading-tight" style={{all:'unset', cursor:'pointer', fontWeight: task.completed ? 400:600, textDecoration: task.completed ? 'line-through':'none'}} aria-expanded={open} aria-controls={`task-focus-${task.id}`} aria-label={`${open? 'Collapse':'Expand'} focus history for task ${task.title}`}>
               {task.title}
-            </button>{' '}
-            <span className={`badge dot priority-${task.priority}`}>{task.priority}</span>
+            </button>
+            <span className={`badge dot priority-${task.priority} text-[0.5rem] sm:text-[0.6rem]`}>{task.priority}</span>
           </div>
-          {task.description && <div className="task-desc" style={{marginTop:'.25rem'}}>{task.description}</div>}
-          <div className="task-meta" style={{marginTop:'.5rem'}}>
+          {task.description && <div className="task-desc text-[0.7rem] sm:text-sm mt-0.5 sm:mt-1">{task.description}</div>}
+          <div className="task-meta mt-1.5 sm:mt-2 gap-1 sm:gap-2" style={{display:'flex', flexWrap:'wrap', alignItems:'center'}}>
             {dueInfo(task)}
             {task.tags.map(tag => <span key={tag} className="tag" style={{background:`hsl(${(tagColor(tag).match(/\d+/)||['0'])[0]} 70% 18%)`, borderColor: tagColor(tag), color: tagColor(tag)}}>{tag}</span>)}
             {typeof task.focusSeconds === 'number' && task.focusSeconds > 0 && (
               <span className="tag" style={{background:'var(--accent-accent2)', borderColor:'var(--accent-accent3)', color:'#fff'}} aria-label={`Focused ${Math.round(task.focusSeconds/60)} minutes total on this task`}>
-                <span aria-hidden="true">⏱ {Math.round(task.focusSeconds/60)}m</span>
+                {Math.round(task.focusSeconds/60)}m
               </span>
             )}
           </div>
           {open && (
-            <div id={`task-focus-${task.id}`} className="ff-stack" style={{gap:'.4rem', marginTop:'.5rem'}}>
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <span style={{fontSize:'.6rem', letterSpacing:'.1em', textTransform:'uppercase', color:'var(--text-muted)'}}>Focus History</span>
-                <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>{totalMinutes}m total</span>
+            <div id={`task-focus-${task.id}`} className="ff-stack gap-2 mt-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[0.55rem] sm:text-[0.6rem] tracking-wider uppercase text-[var(--text-muted)]">Focus History</span>
+                <span className="text-[0.5rem] sm:text-[0.55rem] text-[var(--text-muted)]">{totalMinutes}m total</span>
               </div>
               {focusSessions.length === 0 && (
-                <div style={{fontSize:'.55rem', color:'var(--text-muted)'}}>No focus sessions yet.</div>
+                <div className="text-[0.5rem] sm:text-[0.55rem] text-[var(--text-muted)]">No focus sessions yet.</div>
               )}
               {focusSessions.length > 0 && (
-                <ul style={{listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:'.25rem', maxHeight:'8rem', overflowY:'auto'}}>
+                <ul className="list-none m-0 p-0 flex flex-col gap-1 max-h-32 overflow-y-auto">
                   {focusSessions.slice(0,15).map(s => {
                     const mins = Math.round(s.durationSec/60);
                     const start = new Date(s.startedAt);
                     return (
-                      <li key={s.id} style={{display:'flex', gap:'.5rem', fontSize:'.55rem', alignItems:'center'}}>
-                        <span style={{color:'var(--text-primary)'}}>{mins}m</span>
-                        <span style={{color:'var(--text-muted)'}}>{start.toLocaleDateString(undefined,{month:'short', day:'numeric'})} {start.toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'})}</span>
+                      <li key={s.id} className="flex gap-2 text-[0.5rem] sm:text-[0.55rem] items-center">
+                        <span className="text-[var(--text-primary)]">{mins}m</span>
+                        <span className="text-[var(--text-muted)]">{start.toLocaleDateString(undefined,{month:'short', day:'numeric'})} {start.toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'})}</span>
                       </li>
                     );
                   })}
@@ -138,9 +138,9 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
           )}
         </div>
       </div>
-      <div className="ff-row" style={{gap:'.5rem', flexWrap:'wrap', justifyContent:'flex-end'}}>
-        <Link to={`/timer?taskId=${task.id}&autoStart=1`} className="btn primary" style={{fontSize:'.7rem', minWidth:'auto'}} aria-label="Focus with Pomodoro">Focus</Link>
-        <button ref={anchorRef} className="btn subtle" style={{fontSize:'.7rem', minWidth:'auto'}} aria-label={existingLinked? 'Open note for task':'Add note for task'} onClick={async ()=> {
+      <div className="flex flex-wrap gap-1 sm:gap-2 justify-end">
+        <Link to={`/timer?taskId=${task.id}&autoStart=1`} className="btn primary text-[0.6rem] sm:text-[0.7rem] px-2.5 py-1.5 sm:px-4 sm:py-2.5" style={{minWidth:'auto'}} aria-label="Focus with Pomodoro">Focus</Link>
+        <button ref={anchorRef} className="btn subtle text-[0.6rem] sm:text-[0.7rem] px-2.5 py-1.5 sm:px-4 sm:py-2.5" style={{minWidth:'auto'}} aria-label={existingLinked? 'Open note for task':'Add note for task'} onClick={async ()=> {
           if(!existingLinked){
             try {
               await createNote(task.title, null, '', task.id);
@@ -150,8 +150,8 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
           }
           setShowNote(s=> !s);
         }}>{existingLinked? 'Note':'Add Note'}</button>
-        <button className="btn outline" style={{fontSize:'.7rem', minWidth:'auto', color:'var(--danger)', borderColor:'var(--danger)'}} onClick={() => removeTask(task.id)} aria-label="Delete task">
-          <Trash2 size={14} />
+        <button className="btn outline text-[0.6rem] sm:text-[0.7rem] px-2.5 py-1.5 sm:px-4 sm:py-2.5" style={{minWidth:'auto', color:'var(--danger)', borderColor:'var(--danger)'}} onClick={() => removeTask(task.id)} aria-label="Delete task">
+          <Trash2 className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
         </button>
       </div>
       {showNote && createPortal((

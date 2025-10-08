@@ -9,13 +9,13 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export default function AppwriteTasksPage() {
     return (
-            <div className="ff-stack" style={{gap:'1.5rem'}}>
-                <header className="ff-stack" style={{gap:'.25rem'}}>
-                    <h1 style={{fontSize:'1.4rem', fontWeight:600}}>Tasks</h1>
-                    <p style={{fontSize:'.8rem', color:'var(--text-muted)'}}>Capture, prioritize, and complete your work.</p>
+            <div className="ff-stack gap-3 sm:gap-6 p-2 sm:p-6">
+                <header className="ff-stack gap-0.5 sm:gap-2 px-1 sm:px-0">
+                    <h1 className="text-lg sm:text-2xl font-semibold">Tasks</h1>
+                    <p className="text-[0.7rem] sm:text-sm text-[var(--text-muted)]">Capture, prioritize, and complete your work.</p>
                 </header>
-                <div className="task-layout" style={{gap:'1.5rem'}}>
-                    <div className="ff-stack" style={{gap:'1.5rem'}}>
+                <div className="task-layout flex flex-col xl:grid xl:grid-cols-[320px_1fr] gap-3 sm:gap-6">
+                    <div className="ff-stack gap-3 sm:gap-6">
                         <AppwriteTaskForm />
                         <AppwriteTaskFilters />
                         <AppwriteTaskStats />
@@ -24,7 +24,7 @@ export default function AppwriteTasksPage() {
                 </div>
                 <AppwriteTaskProgressBar />
                 <ErrorBoundary>
-                    <React.Suspense fallback={<div className="card" style={{textAlign:'center', fontSize:'.7rem'}}>Loading charts…</div>}>
+                    <React.Suspense fallback={<div className="card text-center text-xs sm:text-sm">Loading charts…</div>}>
                         <TaskCharts />
                     </React.Suspense>
                 </ErrorBoundary>
