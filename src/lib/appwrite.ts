@@ -98,8 +98,7 @@ export interface AppwriteUserSettings {
   calendarShowWeekends: boolean;
   calendarDefaultFocusDuration: number;
   calendarAutoScheduleTasks: boolean;
-  calendarReminderMinutes: number[];
-  calendarTimeZone: string;
+  calendarReminderMinutes: string; // JSON string of number[]
   userId: string;
   $updatedAt: string;
 }
@@ -269,11 +268,9 @@ export class AuthService {
       
       // Create a session using the OAuth2 token
       await account.createSession(userId, secret);
-      console.log('🔍 Session created successfully from OAuth token');
       
       // Get the current user
       const user = await this.getCurrentUser();
-      console.log('🔍 User retrieved after token session creation:', user ? user.email : 'null');
       
       if (user) {
         // Check if user settings exist and create default settings if needed
@@ -284,14 +281,13 @@ export class AuthService {
         );
         
         if (settings.documents.length === 0) {
-          console.log('🔍 Creating default settings for new OAuth user');
           await this.createDefaultUserSettings(user.$id);
         }
       }
       
       return user;
     } catch (error) {
-      console.error('🔍 OAuth token callback handling failed:', error);
+      console.error('OAuth token callback handling failed:', error);
       throw error;
     }
   }
@@ -351,8 +347,7 @@ export class AuthService {
       calendarShowWeekends: true,
       calendarDefaultFocusDuration: 1500, // 25 minutes
       calendarAutoScheduleTasks: false,
-      calendarReminderMinutes: [15, 5],
-      calendarTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      calendarReminderMinutes: '[15,5]', // JSON string to match Appwrite string attribute
       userId,
     };
 

@@ -22,9 +22,8 @@ export class GoogleCalendarTokenManager {
         ...prefs,
         [this.PREFS_KEY]: JSON.stringify(tokens)
       });
-      console.log('✅ Google Calendar tokens saved to preferences');
     } catch (error) {
-      console.error('❌ Failed to save Google Calendar tokens:', error);
+      console.error('Failed to save Google Calendar tokens:', error);
       throw error;
     }
   }
@@ -42,7 +41,7 @@ export class GoogleCalendarTokenManager {
       const tokens = JSON.parse(tokensJson as string) as GoogleCalendarTokens;
       return tokens;
     } catch (error) {
-      console.error('❌ Failed to get Google Calendar tokens:', error);
+      console.error('Failed to get Google Calendar tokens:', error);
       return null;
     }
   }
@@ -60,7 +59,6 @@ export class GoogleCalendarTokenManager {
       const now = Date.now();
       const buffer = 5 * 60 * 1000; // 5 minute buffer
       if (now >= tokens.expires_at - buffer) {
-        console.log('🔄 Google Calendar token expired or expiring soon');
         return false;
       }
     }
@@ -74,9 +72,8 @@ export class GoogleCalendarTokenManager {
       const prefs = await account.getPrefs();
       delete prefs[this.PREFS_KEY];
       await account.updatePrefs(prefs);
-      console.log('✅ Google Calendar tokens cleared');
     } catch (error) {
-      console.error('❌ Failed to clear Google Calendar tokens:', error);
+      console.error('Failed to clear Google Calendar tokens:', error);
     }
   }
 
@@ -85,7 +82,6 @@ export class GoogleCalendarTokenManager {
     const tokens = await this.getTokens();
     
     if (!tokens || !tokens.refresh_token) {
-      console.log('❌ No refresh token available');
       return null;
     }
 
@@ -121,11 +117,10 @@ export class GoogleCalendarTokenManager {
       };
 
       await this.saveTokens(newTokens);
-      console.log('✅ Google Calendar access token refreshed');
 
       return newTokens;
     } catch (error) {
-      console.error('❌ Failed to refresh Google Calendar token:', error);
+      console.error('Failed to refresh Google Calendar token:', error);
       return null;
     }
   }

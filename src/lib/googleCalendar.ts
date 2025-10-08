@@ -122,9 +122,8 @@ export class GoogleCalendarService {
         token_type: 'Bearer',
         scope: 'https://www.googleapis.com/auth/calendar'
       });
-      console.log('✅ Google Calendar tokens saved to Appwrite');
     } catch (error) {
-      console.error('❌ Failed to save tokens to Appwrite:', error);
+      console.error('Failed to save tokens to Appwrite:', error);
       // Fallback to localStorage
       localStorage.setItem('google_calendar_token', token);
       if (refreshToken) localStorage.setItem('google_calendar_refresh_token', refreshToken);
@@ -142,9 +141,8 @@ export class GoogleCalendarService {
     try {
       const { GoogleCalendarTokenManager } = await import('./googleCalendarTokens');
       await GoogleCalendarTokenManager.clearTokens();
-      console.log('✅ Google Calendar tokens cleared from Appwrite');
     } catch (error) {
-      console.error('❌ Failed to clear tokens from Appwrite:', error);
+      console.error('Failed to clear tokens from Appwrite:', error);
     }
     
     // Also clear localStorage (fallback)
