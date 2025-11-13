@@ -1,9 +1,10 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { TaskFocusBinder } from "../features/pomodoro/TaskFocusBinder";
 import { MiniTimerWidget } from "../features/pomodoro/MiniTimerWidget";
+import BottomNav from "../components/BottomNav";
 
 export default function Layout() {
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -19,7 +20,6 @@ export default function Layout() {
     { to: '/insights', label: 'Insights' },
     { to: '/settings', label: 'Settings' }
   ];
-  const [navOpen, setNavOpen] = useState(false);
 
   // (Previously had a moving background indicator; removed due to visual overlap creating double "bubble" effect.)
   useEffect(() => {
@@ -30,31 +30,14 @@ export default function Layout() {
 
   return (
     <div style={{minHeight:'100dvh', display:'flex', flexDirection:'column'}}>
-      <nav style={{position:'sticky', top:0, zIndex:50, padding:'0.75rem', paddingBottom:0}}>
+      {/* Desktop Navbar - hidden on mobile */}
+      <nav className="hidden md:block" style={{position:'sticky', top:0, zIndex:50, padding:'0.75rem', paddingBottom:0}}>
         <div style={{position:'relative', borderRadius:'1rem', border:'1px solid var(--border)', background:'color-mix(in srgb, var(--bg-alt) 65%, transparent)', backdropFilter:'blur(12px)', boxShadow:'var(--shadow-md)'}}>
           <div style={{display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.75rem', minHeight:'3rem', position:'relative'}}>
-            <button
-              style={{
-                marginRight:'0.25rem',
-                fontSize:'0.9rem',
-                fontWeight:'bold',
-                padding:'0.5rem',
-                borderRadius:'0.5rem',
-                border:'1px solid var(--border)',
-                background:'color-mix(in srgb, var(--bg) 50%, transparent)',
-                transition:'background 0.2s',
-                cursor:'pointer'
-              }}
-              className="mobile-nav-toggle"
-              aria-label={navOpen? 'Close navigation':'Open navigation'}
-              onClick={()=> setNavOpen(o=> !o)}
-            >
-              {navOpen? '✕':'☰'}
-            </button>
             <div style={{display:'flex', alignItems:'center', paddingRight:'0.5rem', marginRight:'0.25rem', borderRight:'1px solid color-mix(in srgb, var(--border) 60%, transparent)', userSelect:'none'}}>
               <span style={{fontSize:'0.95rem', fontWeight:'800', letterSpacing:'0.05em', background:'linear-gradient(to right, var(--accent), var(--accent-accent2), var(--accent-accent3))', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent'}}>BobbyFlow</span>
             </div>
-            <div style={{alignItems:'center', gap:'0.25rem', flexWrap:'wrap', overflowX:'auto'}} className="desktop-nav">
+            <div style={{display:'flex', alignItems:'center', gap:'0.25rem', flexWrap:'wrap', overflowX:'auto'}}>
               {links.map((l) => {
                 const isActive = l.end ? location.pathname === l.to : location.pathname.startsWith(l.to);
                 return (
@@ -62,7 +45,6 @@ export default function Layout() {
                   key={l.to}
                   to={l.to}
                   end={l.end as any}
-                  onClick={()=> setNavOpen(false)}
                   style={{
                     position:'relative',
                     padding:'0.5rem 1rem',
@@ -152,74 +134,17 @@ export default function Layout() {
               </button>
             </div>
           </div>
-          {/* Mobile slide-down menu */}
-          {navOpen && (
-            <div 
-              style={{
-                borderTop:'1px solid var(--border)', 
-                padding:'0 0.75rem 0.75rem',
-                display: 'block'
-              }} 
-              className="mobile-menu"
-            >
-              <div style={{display:'flex', flexDirection:'column', paddingTop:'0.5rem', gap:'0.25rem'}}>
-                {links.map(l => {
-                  const isActive = l.end ? location.pathname === l.to : location.pathname.startsWith(l.to);
-                  return (
-                  <NavLink
-                    key={l.to}
-                    to={l.to}
-                    end={l.end as any}
-                    onClick={()=> setNavOpen(false)}
-                    style={{
-                      position:'relative',
-                      padding:'0.5rem 0.75rem',
-                      borderRadius:'0.5rem',
-                      fontSize:'0.8rem',
-                      fontWeight:'500',
-                      letterSpacing:'0.025em',
-                      textDecoration:'none',
-                      background: isActive ? 'var(--accent)' : 'transparent',
-                      color: isActive ? 'var(--accent-foreground)' : 'var(--text-muted)',
-                      transition:'all 0.2s'
-                    }}
-                  >{l.label}</NavLink>
-                  );
-                })}
-                {/* Mobile logout button */}
-                <button
-                  onClick={() => {
-                    setNavOpen(false);
-                    logout();
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding:'0.5rem 0.75rem',
-                    borderRadius:'0.5rem',
-                    fontSize:'0.8rem',
-                    fontWeight:'500',
-                    letterSpacing:'0.025em',
-                    background: 'transparent',
-                    color: 'var(--danger)',
-                    border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
-                    marginTop: '0.5rem',
-                    cursor: 'pointer',
-                    transition:'all 0.2s'
-                  }}
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          )}
           <div style={{pointerEvents:'none', position:'absolute', left:0, right:0, bottom:'-1.5rem', height:'1.5rem', background:'linear-gradient(to bottom, color-mix(in srgb, black 10%, transparent), transparent)', opacity:0.4}} />
         </div>
       </nav>
-      <main style={{flex:1, padding:'1rem'}}>
+
+      <main style={{flex:1, padding:'1rem', paddingBottom:'5rem'}} className="md:pb-4">
         <TaskFocusBinder />
         <Outlet />
       </main>
+
+      {/* Bottom Navigation for Mobile */}
+      <BottomNav />
     </div>
   );
 }

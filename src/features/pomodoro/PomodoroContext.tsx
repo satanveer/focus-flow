@@ -2,8 +2,10 @@ import React, { createContext, useContext, useCallback, useEffect, useRef, useSt
 import type { ID, PomodoroMode, PomodoroSession, ProductivityRating } from '../../domain/models';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState';
 import { googleCalendarService } from '../../lib/googleCalendar';
+import { calendarService } from '../../lib/appwrite';
 import { useTasksContext } from '../tasks/TasksContext';
 import { useAppwritePomodoro } from './AppwritePomodoroContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ActiveTimer {
   sessionId: ID;
@@ -53,6 +55,9 @@ const DEFAULTS = { focus: 25 * 60, shortBreak: 5 * 60, longBreak: 15 * 60 };
 const PomodoroContext = createContext<PomodoroContextValue | null>(null);
 
 export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Get user context for calendar event creation
+  const { user } = useAuth();
+  
   // Use Appwrite for sessions storage
   const { sessions: appwriteSessions, createSession: createAppwriteSession, updateSession: updateAppwriteSession } = useAppwritePomodoro();
   
@@ -193,6 +198,7 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const loggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
         
         if (loggedSessions.includes(sessionKey)) {
+          console.log('⏭️ Session already logged, skipping duplicate:', sessionKey);
           return;
         }
 
@@ -200,49 +206,109 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const updatedLoggedSessions = [...loggedSessions, sessionKey];
         localStorage.setItem('logged_sessions', JSON.stringify(updatedLoggedSessions));
         
+        console.log('📝 Logging session:', {
+          sessionId: sessionData.sessionId,
+          durationSec: sessionData.durationSec,
+          durationMin: Math.floor(sessionData.durationSec / 60),
+          taskId: sessionData.taskId
+        });
+        
         const hasValidTokens = await googleCalendarService.hasValidTokens();
-        if (hasValidTokens) {
+        
+        // Always log to internal calendar first (if user is authenticated)
+        try {
           const startTime = new Date(sessionData.startedAt);
           const endTime = new Date(startTime.getTime() + sessionData.durationSec * 1000);
           
           // Get actual task title if taskId is provided
           let taskTitle: string | undefined;
+          let task: any;
           if (sessionData.taskId) {
-            const task = tasks.find(t => t.id === sessionData.taskId);
-            taskTitle = task ? task.title : undefined; // Don't fallback to ID
+            task = tasks.find(t => t.id === sessionData.taskId);
+            taskTitle = task ? task.title : undefined;
           }
           
-          if (mode === 'focus') {
+          if (mode === 'focus' && user?.$id) {
+            // Log to internal Appwrite calendar
+            const durationMinutes = Math.floor(sessionData.durationSec / 60);
+            const durationHours = Math.floor(durationMinutes / 60);
+            const remainingMinutes = durationMinutes % 60;
+            
+            let durationText = '';
+            if (durationHours > 0) {
+              durationText = `${durationHours}h ${remainingMinutes}m`;
+            } else {
+              durationText = `${durationMinutes} minute${durationMinutes !== 1 ? 's' : ''}`;
+            }
+            
+            const eventTitle = taskTitle || `Focus Session`;
+            const eventDescription = `🎯 **Deep Focus Session**\n\n**Duration:** ${durationText}\n${taskTitle ? `**Task:** ${taskTitle}\n` : ''}${task?.description ? `**Details:** ${task.description}\n` : ''}\n📊 Logged automatically by Focus Flow`;
+            
+            const calendarEvent = {
+              title: eventTitle,
+              description: eventDescription,
+              type: 'focus' as const,
+              status: 'completed' as const,
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              allDay: false,
+              recurrence: 'none' as const,
+              recurrenceInterval: 0,
+              focusDuration: sessionData.durationSec,
+              actualFocusTime: sessionData.durationSec,
+              taskId: sessionData.taskId,
+              pomodoroSessionId: sessionData.sessionId,
+              source: 'local' as const,
+              tags: JSON.stringify(['focus', 'pomodoro']),
+              attendees: JSON.stringify([]),
+              reminders: JSON.stringify([]),
+              userId: user.$id,
+            };
+            
+            // Create event in internal calendar
+            try {
+              await calendarService.createEvent(calendarEvent);
+              console.log('✅ Focus session logged to internal calendar:', eventTitle);
+            } catch (calendarError) {
+              console.error('Failed to log to internal calendar:', calendarError);
+              // Log detailed error for debugging
+              if (calendarError instanceof Error) {
+                console.error('Error details:', calendarError.message);
+              }
+            }
+          } else if (mode === 'focus' && !user?.$id) {
+            console.warn('⚠️ Cannot log to internal calendar: User not authenticated');
+          }
+          
+          // Also log to Google Calendar if connected
+          if (hasValidTokens && mode === 'focus') {
             try {
               const eventData = googleCalendarService.createFocusSessionEvent({
-                startTime,
-                endTime,
+                startTime: new Date(sessionData.startedAt),
+                endTime: new Date(new Date(sessionData.startedAt).getTime() + sessionData.durationSec * 1000),
                 duration: sessionData.durationSec,
-                taskTitle
+                taskTitle,
+                title: taskTitle // Explicitly pass taskTitle as title to ensure it's used
               });
               
-              googleCalendarService.createEvent(eventData).catch(error => {
-                console.error('Failed to log focus session to Google Calendar:', error);
-                // Remove from logged sessions if logging failed
-                const failedLoggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
-                const filteredSessions = failedLoggedSessions.filter((key: string) => key !== sessionKey);
-                localStorage.setItem('logged_sessions', JSON.stringify(filteredSessions));
-              });
+              await googleCalendarService.createEvent(eventData);
+              console.log('✅ Focus session logged to Google Calendar:', taskTitle || 'Focus Session');
             } catch (error) {
-              console.error('Error creating calendar event:', error);
+              console.error('Failed to log focus session to Google Calendar:', error);
             }
           }
-        } else {
-          // Remove from logged sessions if not authenticated
-          const notAuthLoggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
-          const filteredSessions = notAuthLoggedSessions.filter((key: string) => key !== sessionKey);
+        } catch (error) {
+          console.error('Error logging session to calendar:', error);
+          // Remove from logged sessions if logging failed
+          const failedLoggedSessions = JSON.parse(localStorage.getItem('logged_sessions') || '[]');
+          const filteredSessions = failedLoggedSessions.filter((key: string) => key !== sessionKey);
           localStorage.setItem('logged_sessions', JSON.stringify(filteredSessions));
         }
       }
     } catch {
       // swallow errors silently (audio/notification failures)
     }
-  }, [tasks]);
+  }, [tasks, user]);
 
   const clearTick = () => { if (tickRef.current) cancelAnimationFrame(tickRef.current); tickRef.current = null; };
 
@@ -355,9 +421,9 @@ export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const session: PomodoroSession = { id: sessionId, mode, startedAt, durationSec: credited, endedAt: new Date().toISOString(), taskId, aborted: false };
     let focusCycleCount = s.focusCycleCount;
     if (mode === 'focus') focusCycleCount += 1;
-    // Side effects for manual completion too (but skip Google Calendar logging to prevent duplicates)
+    // Side effects for manual completion - DO log to calendar (removed skip flag)
     queueMicrotask(() => {
-      fireSessionEndEffects(s, mode, { sessionId, startedAt, durationSec: credited, taskId }, true).catch(err =>
+      fireSessionEndEffects(s, mode, { sessionId, startedAt, durationSec: credited, taskId }, false).catch(err =>
         console.error('Error in fireSessionEndEffects:', err)
       );
     });

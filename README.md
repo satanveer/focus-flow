@@ -1,10 +1,119 @@
 <div align="center">
   <h1>BobbyFlow</h1>
-  <p><strong>Deep-work companion:</strong> Pomodoro timer, tasks, hierarchical notes, focus analytics & reflections – all local, fast, and keyboard friendly.</p>
+  <p><strong>Deep-work companion:</strong> Pomodoro timer, tasks, hierarchical notes, calendar integration, focus analytics & reflections – all with Appwrite backend and mobile-optimized interface.</p>
   <p>
-    <em>Built with React + TypeScript + Vite. No backend. Your data lives in your browser (localStorage) right now.</em>
+    <em>Built with React + TypeScript + Vite + Appwrite. Syncs across devices with full mobile support.</em>
   </p>
 </div>
+
+---
+
+## Table of Contents
+1. Vision & Philosophy  
+2. Feature Overview  
+3. Quick Start  
+4. Project Structure  
+5. Tech Stack & Libraries  
+6. Data Model & Persistence  
+7. Timer / Session Lifecycle  
+8. Notes & Reflections  
+9. Analytics & Charts  
+10. Calendar Integration
+11. Mobile Experience
+12. Accessibility & UX Considerations  
+13. Theming & Design Tokens  
+14. Development Scripts  
+15. Roadmap Ideas  
+16. Contributing / Internal Guidelines  
+17. License (TBD)  
+
+---
+
+## 1. Vision & Philosophy
+I wanted a focused workspace that doesn't overwhelm: start a session, capture a quick reflection, see trends, refine habits. BobbyFlow should remain fast, cloud-synced, visually clean, and low-friction. Everything syncs via Appwrite for cross-device access while maintaining excellent mobile responsiveness.
+
+Core principles:
+- Low mental overhead – controls are obvious, defaults sensible.
+- Rich insight, minimal noise – show only what adds decision value.
+- Progressive enhancement – fancy visuals never block basic use.
+- Accessibility matters – keyboard + screen reader friendly.
+- Mobile-first design – fully optimized for phones and tablets.
+
+---
+
+## 2. Feature Overview
+| Area | Highlights |
+|------|------------|
+| Pomodoro Timer | Focus / short break / long break modes, custom durations, keyboard hints, test alert, reflection prompt after focus, auto-logs to calendar |
+| Tasks | Priorities, due dates, tags, completion tracking, aggregated analytics, Appwrite sync |
+| Notes | Hierarchical folders, task-linked notes, drag & drop move, reflections auto-appended, cloud storage |
+| Reflections | Emoji-coded lines appended to a note (task-linked) with timestamp; history badges in lists |
+| Calendar | Google Calendar integration, internal Appwrite calendar, 4 views (Month/Week/Day/Agenda), automatic focus session logging |
+| Analytics (Insights) | Daily / Weekly / Monthly focus charts, productivity stats, exports (CSV / JSON), per-task daily table |
+| Dashboard | Today focus distribution, goal progress bar, quick context widgets |
+| Focus Goal | Daily minute goal w/ gradient progress bar + streak tracking |
+| Sessions Table | Simplified & color-coded view of historical sessions |
+| Recent Sessions | Enhanced zebra list with mode pills and minute emphasis |
+| Mobile Navigation | Bottom navigation bar with 5 main sections, optimized login page |
+| Authentication | Email/password + Google OAuth, Appwrite-powered |
+| Theming | Light / dark toggle, gradient accents, accessible focus ring |
+
+---
+
+## 3. Quick Start
+
+Prereqs: Node 18+ (or newer LTS).
+
+```bash
+git clone <repo-url>
+cd focus-flow
+npm install
+npm run dev
+```
+Open http://localhost:5173
+
+Build production:
+```bash
+npm run build
+npm run preview
+```
+
+Lint:
+```bash
+npm run lint
+```
+
+**Appwrite Setup Required:**
+- Create an Appwrite project
+- Configure OAuth providers (Google)
+- Set up database collections (tasks, notes, calendar events, settings)
+- Update `.env` with Appwrite credentials
+
+See `docs/APPWRITE_SETUP.md` for detailed setup instructions.
+
+---
+
+## 4. Project Structure
+```
+src/
+  components/           # Reusable UI components
+    calendar/           # Calendar views (Month/Week/Day/Agenda)
+    BottomNav.tsx       # Mobile bottom navigation
+    EventTooltip.tsx    # Calendar event tooltips
+  contexts/             # Theme, auth, tasks, notes, calendar, pomodoro providers
+  features/
+    pomodoro/           # Timer logic, widgets, goal bar
+    tasks/              # Task CRUD, charts, reducers
+    notes/              # Folder + notes data + drag/drop logic
+    settings/           # User settings management
+  layouts/              # App layout + navbar (responsive)
+  routes/               # Page components (Dashboard, Timer, Tasks, Calendar, Notes, Insights, Settings)
+  lib/                  # Appwrite client, Google Calendar API, sync services
+  styles/ / index.css   # Design tokens + focus ring + global resets + mobile responsive
+  utils/                # Helpers / date formatting
+public/                 # favicon and static assets
+docs/                   # Setup guides and documentation
+```
 
 ---
 
@@ -214,14 +323,25 @@ Type-checking occurs in the build (tsc project references: `tsconfig.app.json`, 
 ---
 
 ## 13. Roadmap Ideas
+- ✅ ~~Appwrite backend integration~~
+- ✅ ~~Google Calendar sync~~
+- ✅ ~~Mobile bottom navigation~~
+- ✅ ~~Mobile-optimized login~~
+- ✅ ~~Calendar event tooltips~~
+- ✅ ~~Automatic focus session logging~~
 - Folder operations UI (create / rename / delete with guards)
 - Persist notes panel sizing & open state
 - Keyboard shortcuts overlay
-- Optional cloud sync adapter (local-first architecture preserved)
-- Offline export/import of full workspace JSON
+- Offline mode with sync queue
 - Rich filtering & tag management
-- Pomodoro auto-start next session toggle
+- Pomodoro auto-start next session toggle (configurable)
 - PWA manifest + install prompt polish
+- Desktop notifications for session completion
+- Export/import full workspace data
+- Multi-device real-time collaboration
+- Task templates and recurring tasks
+- Calendar event creation from app
+- Habits tracking integration
 
 ---
 
@@ -238,15 +358,29 @@ Coding style: semicolons on TS, small caps for utility classes, accessible label
 ---
 
 ## 15. License
-License not yet selected. Treat as “All rights reserved” until a license file appears.
+License not yet selected. Treat as "All rights reserved" until a license file appears.
 
 ---
 
 ## Appendix: Quick FAQ
-**Why localStorage instead of IndexedDB?** Simplicity + low data volume. Can upgrade later.  
+**Why Appwrite instead of Firebase?** Self-hosting option, better privacy control, excellent developer experience.  
 **Why not Redux/Zustand?** Native context + reducers are enough at current scale.  
-**Does data survive refresh?** Yes, everything persisted unless you clear site data.  
-**Any telemetry?** None.  
+**Does data survive refresh?** Yes, everything synced to Appwrite cloud.  
+**Can I use it offline?** Currently requires internet connection. Offline mode planned for future.  
+**Any telemetry?** None. Your data stays between you and your Appwrite instance.  
+**Mobile support?** Fully optimized with bottom navigation and responsive design.  
+**Google Calendar required?** No, internal calendar works independently. Google sync is optional.
+
+---
+
+**Recent Updates:**
+- 🎉 Added mobile bottom navigation with 5 main sections
+- 📱 Optimized login page for mobile devices
+- 📅 Enhanced calendar with interactive tooltips and multi-event view
+- 🔄 Implemented dual-calendar system (Appwrite + Google Calendar)
+- ✨ Focus sessions now auto-log to both calendars with task details
+- 🎨 Modern gradient-based UI with Untitled UI inspiration
+- ⚙️ Added logout option in Settings page
 
 ---
 

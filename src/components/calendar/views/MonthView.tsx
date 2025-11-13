@@ -125,12 +125,12 @@ const MonthView: React.FC = () => {
       {/* Weekday headers */}
       <div className="grid grid-cols-7" style={{ borderBottom: '1px solid var(--border)' }}>
         {weekdays.map((day, index) => (
-          <div key={day} className="p-3 sm:p-4 text-center" style={{ borderRight: index < 6 ? '1px solid var(--border)' : 'none' }}>
+          <div key={day} className="p-2 sm:p-2.5 text-center" style={{ borderRight: index < 6 ? '1px solid var(--border)' : 'none' }}>
             {/* Show single letter on mobile, full text on tablet+ */}
             <span className="text-xs font-semibold uppercase tracking-wide sm:hidden" style={{ color: 'var(--text-muted)' }}>
               {weekdaysShort[index]}
             </span>
-            <span className="text-sm font-semibold uppercase tracking-wide hidden sm:inline" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-xs font-semibold uppercase tracking-wide hidden sm:inline" style={{ color: 'var(--text-muted)' }}>
               {day}
             </span>
           </div>
@@ -139,25 +139,25 @@ const MonthView: React.FC = () => {
 
       {/* Calendar grid or empty state */}
       {state.events.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center min-h-96">
-          <div className="text-center p-8">
-            <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full" 
+        <div className="flex-1 flex items-center justify-center min-h-64">
+          <div className="text-center p-6">
+            <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-full" 
                  style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--accent)' }}>
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--accent)' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text)' }}>No events this month</h3>
-            <p className="mb-6 max-w-sm mx-auto" style={{ color: 'var(--text-muted)' }}>
+            <h3 className="text-base font-bold mb-2" style={{ color: 'var(--text)' }}>No events this month</h3>
+            <p className="mb-4 max-w-sm mx-auto text-sm" style={{ color: 'var(--text-muted)' }}>
               Start a focus session or connect Google Calendar to see your events here.
             </p>
             <button
               onClick={() => showEventModal()}
-              className="px-6 py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
+              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
               style={{ 
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
-                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                boxShadow: '0 3px 10px rgba(102, 126, 234, 0.3)'
               }}
             >
               Create Event
@@ -175,7 +175,7 @@ const MonthView: React.FC = () => {
             return (
               <div
                 key={index}
-                className={`p-2 sm:p-3 min-h-24 sm:min-h-32 cursor-pointer transition-all duration-200 ${
+                className={`p-1 sm:p-2 min-h-16 sm:min-h-20 cursor-pointer transition-all duration-200 ${
                   !isCurrentMonth ? 'opacity-40' : ''
                 }`}
                 style={{
@@ -201,16 +201,16 @@ const MonthView: React.FC = () => {
                 }}
               >
                 {/* Day number */}
-                <div className="flex justify-between items-start mb-1 sm:mb-2">
-                  <span className={`text-sm sm:text-base font-semibold transition-all ${
+                <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+                  <span className={`text-xs sm:text-sm font-semibold transition-all ${
                     isToday 
-                      ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center'
+                      ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center'
                       : ''
                   }`}
                   style={isToday ? {
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     color: 'white',
-                    boxShadow: '0 2px 8px rgba(102, 126, 234, 0.4)'
+                    boxShadow: '0 2px 6px rgba(102, 126, 234, 0.4)'
                   } : {
                     color: isCurrentMonth ? 'var(--text)' : 'var(--text-muted)'
                   }}>
@@ -219,17 +219,17 @@ const MonthView: React.FC = () => {
                 </div>
 
                 {/* Events */}
-                <div className="space-y-1 sm:space-y-1.5">
+                <div className="space-y-0.5 sm:space-y-1">
                   {events.length > 0 && (
                     <>
                       {/* Mobile: Show dots */}
-                      <div className="flex gap-1.5 sm:hidden flex-wrap">
+                      <div className="flex gap-1 sm:hidden flex-wrap">
                         {events.slice(0, 4).map((event) => {
                           const eventColors = getEventColorClasses(event.type);
                           return (
                             <div
                               key={event.id}
-                              className="w-2 h-2 rounded-full transition-transform hover:scale-125 cursor-pointer"
+                              className="w-1.5 h-1.5 rounded-full transition-transform hover:scale-125 cursor-pointer"
                               style={{ background: eventColors.bg }}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -239,20 +239,20 @@ const MonthView: React.FC = () => {
                           );
                         })}
                         {events.length > 4 && (
-                          <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                          <span className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>
                             +{events.length - 4}
                           </span>
                         )}
                       </div>
                       
                       {/* Tablet+: Show event bars */}
-                      <div className="hidden sm:block space-y-1.5">
-                        {events.slice(0, 3).map((event) => {
+                      <div className="hidden sm:block space-y-1">
+                        {events.slice(0, 2).map((event) => {
                           const eventColors = getEventColorClasses(event.type);
                           return (
                             <div
                               key={event.id}
-                              className="text-xs px-2 py-1.5 rounded-md truncate cursor-pointer font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                              className="text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer font-medium transition-all duration-200 hover:scale-105 hover:shadow-sm"
                               style={{
                                 background: eventColors.bg,
                                 color: eventColors.text,
@@ -267,15 +267,15 @@ const MonthView: React.FC = () => {
                             </div>
                           );
                         })}
-                        {events.length > 3 && (
+                        {events.length > 2 && (
                           <div 
-                            className="text-xs text-center font-semibold cursor-pointer transition-all duration-200 px-2 py-1 rounded-md"
+                            className="text-[9px] text-center font-semibold cursor-pointer transition-all duration-200 px-1 py-0.5 rounded"
                             style={{
                               color: 'var(--accent)',
                               background: 'color-mix(in srgb, var(--accent) 10%, transparent)'
                             }}
                             onMouseEnter={(e) => {
-                              handleMoreEventsHover(events.slice(3), e);
+                              handleMoreEventsHover(events.slice(2), e);
                               e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 20%, transparent)';
                             }}
                             onMouseLeave={(e) => {
@@ -284,12 +284,12 @@ const MonthView: React.FC = () => {
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (events[3]) {
-                                showEventModal(events[3]);
+                              if (events[2]) {
+                                showEventModal(events[2]);
                               }
                             }}
                           >
-                            +{events.length - 3} more
+                            +{events.length - 2}
                           </div>
                         )}
                       </div>

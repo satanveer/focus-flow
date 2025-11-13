@@ -457,8 +457,8 @@ export class GoogleCalendarService {
   }): GoogleCalendarEvent {
     const { title, startTime, endTime, taskTitle, productivity, duration } = sessionData;
     
-    // Create a clean, professional title - use taskTitle if available
-    const eventTitle = title || (taskTitle ? `🎯 ${taskTitle}` : '🎯 Focus Session');
+    // Use taskTitle as the primary event title, fallback to title or generic
+    const eventTitle = taskTitle ? `🎯 ${taskTitle}` : (title || '🎯 Focus Session');
     const durationMinutes = Math.floor(duration / 60);
     const durationHours = Math.floor(durationMinutes / 60);
     const remainingMinutes = durationMinutes % 60;
@@ -471,12 +471,12 @@ export class GoogleCalendarService {
       durationText = `${durationMinutes} minute${durationMinutes !== 1 ? 's' : ''}`;
     }
     
-    // Create comprehensive description
+    // Create informative description
     let description = `🎯 **Deep Focus Session**\n\n`;
     description += `**Duration:** ${durationText}\n`;
     
     if (taskTitle) {
-      description += `**Task:** ${taskTitle}\n`;
+      description += `**Task Completed:** ${taskTitle}\n`;
     }
     
     if (productivity) {

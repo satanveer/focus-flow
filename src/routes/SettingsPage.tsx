@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePomodoro } from '../features/pomodoro/PomodoroContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import GoogleCalendarSettings from '../components/GoogleCalendarSettings';
 
 export default function SettingsPage() {
@@ -24,6 +25,7 @@ export default function SettingsPage() {
     sessions,
   } = usePomodoro() as any;
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const { logout } = useAuth();
 
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -183,6 +185,19 @@ export default function SettingsPage() {
             }}
           >{confirmReset? 'Confirm Reset (erases sessions)':'Reset Pomodoro Data'}</button>
           <p style={hintStyle}>Reset removes all session history & settings (tasks are unaffected).</p>
+        </div>
+      </section>
+
+      <section className="card ff-stack" style={{padding:'1rem', gap:'.75rem'}}>
+        <h2 style={{fontSize:'.8rem', letterSpacing:'.1em', textTransform:'uppercase', color:'var(--text-muted)'}}>Account</h2>
+        <div style={{display:'flex', flexDirection:'column', gap:'.5rem', maxWidth:340}}>
+          <button
+            type="button"
+            className="btn danger"
+            style={{fontSize:'.6rem'}}
+            onClick={logout}
+          >Logout</button>
+          <p style={hintStyle}>Sign out of your account.</p>
         </div>
       </section>
     </div>

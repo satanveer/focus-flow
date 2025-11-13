@@ -448,3 +448,46 @@ html.dark .date-input input[type=date] { background:var(--bg-alt); }
 	.date-input input[type=date] { border:1px solid CanvasText; }
 	.chk-box { border:1px solid CanvasText; }
 }
+
+/* Mobile responsive styles for login page */
+@media (max-width: 768px) {
+	.login-container {
+		grid-template-columns: 1fr !important;
+		gap: 0 !important;
+		padding: 0 !important;
+	}
+	
+	.quotes-section {
+		display: none !important;
+	}
+	
+	.login-card {
+		max-width: 100% !important;
+		margin: 0 auto !important;
+		padding: 1.5rem !important;
+		border-radius: 12px !important;
+	}
+	
+	.login-card h1 {
+		font-size: 2rem !important;
+	}
+	
+	.login-card h2 {
+		font-size: 1.25rem !important;
+	}
+}
+
+@media (max-width: 480px) {
+	.login-card {
+		padding: 1.25rem !important;
+		border-radius: 8px !important;
+	}
+	
+	.login-card h1 {
+		font-size: 1.75rem !important;
+	}
+	
+	.login-card h2 {
+		font-size: 1.125rem !important;
+	}
+}

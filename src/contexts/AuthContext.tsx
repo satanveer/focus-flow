@@ -539,7 +539,7 @@ const LoginPage: React.FC = () => {
       alignItems: 'center', 
       justifyContent: 'center', 
       background: 'var(--bg)',
-      padding: '2rem',
+      padding: '1rem',
       position: 'relative',
       overflow: 'hidden'
     }}>
@@ -555,7 +555,7 @@ const LoginPage: React.FC = () => {
         zIndex: 0,
       }} />
       
-      <div style={{
+      <div className="login-container" style={{
         maxWidth: '1200px',
         width: '100%',
         display: 'grid',
@@ -565,11 +565,13 @@ const LoginPage: React.FC = () => {
         position: 'relative',
         zIndex: 1,
       }}>
-        {/* Left Side - Quotes */}
-        <QuotesSection />
+        {/* Left Side - Quotes (Hidden on mobile) */}
+        <div className="quotes-section" style={{ display: 'block' }}>
+          <QuotesSection />
+        </div>
         
         {/* Right Side - Login Card */}
-        <div style={{ 
+        <div className="login-card" style={{ 
           maxWidth: '26rem', 
           width: '100%', 
           padding: '2rem',
@@ -581,7 +583,8 @@ const LoginPage: React.FC = () => {
           boxShadow: 'var(--shadow-md), 0 0 0 1px rgba(59, 130, 246, 0.1)',
           animation: 'slideInRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
           transition: 'transform 0.3s ease',
-          marginLeft: 'auto'
+          marginLeft: 'auto',
+          marginRight: 'auto'
         }}
         onMouseEnter={(e) => {
           (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
