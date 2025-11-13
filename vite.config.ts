@@ -29,16 +29,15 @@ export default defineConfig({
       }
     },
     chunkSizeWarningLimit: 1000,
-    // Minification and optimization
+    // Minification
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.logs in production
+        drop_console: true,
         drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug'],
       },
     },
-    // Source maps for production debugging (optional - comment out for smaller builds)
+    // Source maps for production debugging (optional - set to false for smaller builds)
     sourcemap: false,
   },
   // Performance hints
