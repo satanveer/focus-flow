@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { Models } from 'appwrite';
 import { authService } from '../lib/appwrite';
+import { ParticleBackground } from '../components/ParticleBackground';
+import { LoadingScreen } from '../components/LoadingScreen';
 
 interface AuthState {
   user: Models.User<Models.Preferences> | null;
@@ -383,28 +385,7 @@ export const ProtectedRoute: React.FC<{
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'var(--bg)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '2rem',
-            height: '2rem',
-            border: '2px solid var(--border)',
-            borderTop: '2px solid var(--accent)',
-            borderRadius: '50%',
-            margin: '0 auto 1rem',
-            animation: 'spin 1s linear infinite'
-          }}></div>
-          <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
@@ -412,6 +393,106 @@ export const ProtectedRoute: React.FC<{
   }
 
   return <>{children}</>;
+};
+
+// Quotes Section Component
+const QuotesSection: React.FC = () => {
+  const quotes = [
+    { text: "Time is what we want most, but what we use worst.", author: "William Penn" },
+    { text: "Lost time is never found again.", author: "Benjamin Franklin" },
+    { text: "Time is the most valuable thing a man can spend.", author: "Theophrastus" },
+    { text: "The key is in not spending time, but in investing it.", author: "Stephen R. Covey" },
+    { text: "Time flies over us, but leaves its shadow behind.", author: "Nathaniel Hawthorne" },
+    { text: "You may delay, but time will not.", author: "Benjamin Franklin" },
+    { text: "Time management is life management.", author: "Robin Sharma" },
+    { text: "The bad news is time flies. The good news is you're the pilot.", author: "Michael Altshuler" }
+  ];
+
+  const [currentQuote, setCurrentQuote] = React.useState(0);
+  const [fade, setFade] = React.useState(true);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setCurrentQuote((prev) => (prev + 1) % quotes.length);
+        setFade(true);
+      }, 500);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [quotes.length]);
+
+  return (
+    <div style={{
+      padding: '2rem',
+      animation: 'slideInLeft 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
+    }}>
+      <div style={{
+        opacity: fade ? 1 : 0,
+        transform: fade ? 'translateY(0)' : 'translateY(-20px)',
+        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ marginBottom: '2rem', opacity: 0.3 }}>
+          <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" fill="var(--accent)" opacity="0.2"/>
+          <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" fill="var(--accent)" opacity="0.2"/>
+        </svg>
+        
+        <blockquote style={{
+          margin: 0,
+          padding: 0,
+          border: 'none'
+        }}>
+          <p style={{
+            fontSize: '2rem',
+            fontWeight: '700',
+            color: 'var(--text)',
+            lineHeight: '1.3',
+            marginBottom: '1.5rem',
+            letterSpacing: '-0.02em'
+          }}>
+            "{quotes[currentQuote].text}"
+          </p>
+          <footer style={{
+            fontSize: '1.125rem',
+            fontWeight: '600',
+            color: 'var(--accent)',
+            fontStyle: 'normal'
+          }}>
+            — {quotes[currentQuote].author}
+          </footer>
+        </blockquote>
+
+        {/* Quote indicator dots */}
+        <div style={{
+          display: 'flex',
+          gap: '0.5rem',
+          marginTop: '2rem'
+        }}>
+          {quotes.map((_, index) => (
+            <div
+              key={index}
+              style={{
+                width: currentQuote === index ? '24px' : '8px',
+                height: '8px',
+                borderRadius: '4px',
+                background: currentQuote === index ? 'var(--accent)' : 'var(--border)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}
+              onClick={() => {
+                setFade(false);
+                setTimeout(() => {
+                  setCurrentQuote(index);
+                  setFade(true);
+                }, 300);
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // Simple Login/Register Component
@@ -458,150 +539,307 @@ const LoginPage: React.FC = () => {
       alignItems: 'center', 
       justifyContent: 'center', 
       background: 'var(--bg)',
-      padding: '1rem'
+      padding: '2rem',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <div style={{ 
-        maxWidth: '28rem', 
-        width: '100%', 
-        padding: '2rem',
-        background: 'var(--surface)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border)',
-        boxShadow: 'var(--shadow-md)'
+      {/* Particle Background */}
+      <ParticleBackground />
+      
+      {/* Gradient Overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      
+      <div style={{
+        maxWidth: '1200px',
+        width: '100%',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '4rem',
+        alignItems: 'center',
+        position: 'relative',
+        zIndex: 1,
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ 
-            fontSize: '1.875rem', 
-            fontWeight: 'bold', 
-            color: 'var(--text)',
-            marginBottom: '0.5rem'
-          }}>
-            {isLogin ? 'Sign in to FocusFlow' : 'Create your account'}
-          </h2>
-          <p style={{ 
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem'
-          }}>
-            {isLogin 
-              ? 'Welcome back! Please sign in to continue.' 
-              : 'Join FocusFlow to boost your productivity.'
-            }
-          </p>
-        </div>
+        {/* Left Side - Quotes */}
+        <QuotesSection />
         
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Right Side - Login Card */}
+        <div style={{ 
+          maxWidth: '26rem', 
+          width: '100%', 
+          padding: '2rem',
+          background: 'var(--surface)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-md), 0 0 0 1px rgba(59, 130, 246, 0.1)',
+          animation: 'slideInRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transition: 'transform 0.3s ease',
+          marginLeft: 'auto'
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.2)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-md), 0 0 0 1px rgba(59, 130, 246, 0.1)';
+        }}>
+          {/* Logo Text */}
+          <div style={{ 
+            textAlign: 'center', 
+            marginBottom: '2rem'
+          }}>
+            <h1 style={{
+              fontSize: '2.5rem',
+              fontWeight: '800',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '1rem',
+              letterSpacing: '-0.03em',
+              fontFamily: 'system-ui, -apple-system, sans-serif'
+            }}>
+              BobbyFlow
+            </h1>
+            <h2 style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: '700', 
+              color: 'var(--text)',
+              marginBottom: '0.5rem',
+              letterSpacing: '-0.02em'
+            }}>
+              {isLogin ? 'Welcome Back' : 'Join BobbyFlow'}
+            </h2>
+            <p style={{ 
+              color: 'var(--text-muted)',
+              fontSize: '0.875rem',
+              fontWeight: '500'
+            }}>
+              {isLogin 
+                ? 'Sign in to continue your productivity journey' 
+                : 'Start boosting your productivity today'
+              }
+            </p>
+          </div>
+        
+                
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {!isLogin && (
-            <div>
+            <div style={{ animation: 'fadeInLeft 0.5s ease-out' }}>
               <label htmlFor="name" style={{ 
                 display: 'block', 
-                fontSize: '0.875rem', 
-                fontWeight: '500', 
+                fontSize: '0.813rem', 
+                fontWeight: '600', 
                 color: 'var(--text)',
-                marginBottom: '0.25rem'
+                marginBottom: '0.5rem'
               }}>
                 Full Name
               </label>
+              <div style={{ position: 'relative' }}>
+                <div 
+                  id="name-icon"
+                  style={{
+                    position: 'absolute',
+                    left: '14px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)',
+                    pointerEvents: 'none',
+                    transition: 'color 0.2s ease'
+                  }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required={!isLogin}
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 0.75rem 0.75rem 42px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--bg)',
+                    color: 'var(--text)',
+                    fontSize: '0.875rem',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    outline: 'none'
+                  }}
+                  placeholder="Enter your full name"
+                  onFocus={(e) => {
+                    (e.target as HTMLInputElement).style.borderColor = 'var(--accent)';
+                    (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    const icon = document.getElementById('name-icon');
+                    if (icon) icon.style.color = '#667eea';
+                  }}
+                  onBlur={(e) => {
+                    (e.target as HTMLInputElement).style.borderColor = 'var(--border)';
+                    (e.target as HTMLInputElement).style.boxShadow = 'none';
+                    const icon = document.getElementById('name-icon');
+                    if (icon) icon.style.color = 'var(--text-muted)';
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          
+          <div style={{ animation: 'fadeInLeft 0.6s ease-out' }}>
+            <label htmlFor="email" style={{ 
+              display: 'block', 
+              fontSize: '0.813rem', 
+              fontWeight: '600', 
+              color: 'var(--text)',
+              marginBottom: '0.5rem'
+            }}>
+              Email Address
+            </label>
+            <div style={{ position: 'relative' }}>
+              <div 
+                id="email-icon"
+                style={{
+                  position: 'absolute',
+                  left: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
+                  transition: 'color 0.2s ease'
+                }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+              </div>
               <input
-                id="name"
-                name="name"
-                type="text"
-                required={!isLogin}
-                value={formData.name}
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
                 onChange={handleInputChange}
                 style={{
                   width: '100%',
-                  padding: '0.5rem 0.75rem',
+                  padding: '0.75rem 0.75rem 0.75rem 42px',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md)',
                   background: 'var(--bg)',
                   color: 'var(--text)',
                   fontSize: '0.875rem',
-                  transition: 'border-color 0.2s, box-shadow 0.2s'
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  outline: 'none'
                 }}
-                placeholder="Enter your full name"
-                onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--accent)'}
-                onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--border)'}
+                placeholder="Enter your email"
+                onFocus={(e) => {
+                  (e.target as HTMLInputElement).style.borderColor = 'var(--accent)';
+                  (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  const icon = document.getElementById('email-icon');
+                  if (icon) icon.style.color = '#667eea';
+                }}
+                onBlur={(e) => {
+                  (e.target as HTMLInputElement).style.borderColor = 'var(--border)';
+                  (e.target as HTMLInputElement).style.boxShadow = 'none';
+                  const icon = document.getElementById('email-icon');
+                  if (icon) icon.style.color = 'var(--text-muted)';
+                }}
               />
             </div>
-          )}
-          
-          <div>
-            <label htmlFor="email" style={{ 
-              display: 'block', 
-              fontSize: '0.875rem', 
-              fontWeight: '500', 
-              color: 'var(--text)',
-              marginBottom: '0.25rem'
-            }}>
-              Email Address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={formData.email}
-              onChange={handleInputChange}
-              style={{
-                width: '100%',
-                padding: '0.5rem 0.75rem',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg)',
-                color: 'var(--text)',
-                fontSize: '0.875rem',
-                transition: 'border-color 0.2s, box-shadow 0.2s'
-              }}
-              placeholder="Enter your email"
-              onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--accent)'}
-              onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--border)'}
-            />
           </div>
           
-          <div>
+          <div style={{ animation: 'fadeInLeft 0.7s ease-out' }}>
             <label htmlFor="password" style={{ 
               display: 'block', 
-              fontSize: '0.875rem', 
-              fontWeight: '500', 
+              fontSize: '0.813rem', 
+              fontWeight: '600', 
               color: 'var(--text)',
-              marginBottom: '0.25rem'
+              marginBottom: '0.5rem'
             }}>
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              value={formData.password}
-              onChange={handleInputChange}
-              style={{
-                width: '100%',
-                padding: '0.5rem 0.75rem',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg)',
-                color: 'var(--text)',
-                fontSize: '0.875rem',
-                transition: 'border-color 0.2s, box-shadow 0.2s'
-              }}
-              placeholder="Enter your password"
-              minLength={8}
-              onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--accent)'}
-              onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = 'var(--border)'}
-            />
+            <div style={{ position: 'relative' }}>
+              <div 
+                id="password-icon"
+                style={{
+                  position: 'absolute',
+                  left: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
+                  transition: 'color 0.2s ease'
+                }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={formData.password}
+                onChange={handleInputChange}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 0.75rem 0.75rem 42px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg)',
+                  color: 'var(--text)',
+                  fontSize: '0.875rem',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  outline: 'none'
+                }}
+                placeholder="Enter your password"
+                minLength={8}
+                onFocus={(e) => {
+                  (e.target as HTMLInputElement).style.borderColor = 'var(--accent)';
+                  (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  const icon = document.getElementById('password-icon');
+                  if (icon) icon.style.color = '#667eea';
+                }}
+                onBlur={(e) => {
+                  (e.target as HTMLInputElement).style.borderColor = 'var(--border)';
+                  (e.target as HTMLInputElement).style.boxShadow = 'none';
+                  const icon = document.getElementById('password-icon');
+                  if (icon) icon.style.color = 'var(--text-muted)';
+                }}
+              />
+            </div>
           </div>
 
           {error && (
             <div style={{
               color: 'var(--danger)',
-              fontSize: '0.875rem',
+              fontSize: '0.813rem',
               textAlign: 'center',
-              background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
-              padding: '0.75rem',
+              background: 'color-mix(in srgb, var(--danger) 8%, transparent)',
+              padding: '0.875rem',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)'
+              border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)',
+              animation: 'shake 0.4s cubic-bezier(.36,.07,.19,.97)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
             }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
               {error}
             </div>
           )}
@@ -613,26 +851,71 @@ const LoginPage: React.FC = () => {
               width: '100%',
               display: 'flex',
               justifyContent: 'center',
-              padding: '0.5rem 1rem',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.875rem 1rem',
               border: 'none',
               borderRadius: 'var(--radius-md)',
               fontSize: '0.875rem',
-              fontWeight: '500',
-              color: 'var(--accent-foreground)',
-              background: loading ? 'var(--text-muted)' : 'var(--accent)',
+              fontWeight: '600',
+              color: '#ffffff',
+              background: loading ? 'var(--text-muted)' : 'linear-gradient(135deg, var(--accent) 0%, #1d4ed8 100%)',
               cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s',
-              opacity: loading ? 0.5 : 1
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              opacity: loading ? 0.6 : 1,
+              boxShadow: loading ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.3)',
+              transform: 'scale(1)',
+              animation: 'fadeInUp 0.8s ease-out'
             }}
-            onMouseOver={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'color-mix(in srgb, var(--accent) 90%, black)')}
-            onMouseOut={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--accent)')}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                (e.target as HTMLButtonElement).style.transform = 'translateY(-2px) scale(1.02)';
+                (e.target as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) {
+                (e.target as HTMLButtonElement).style.transform = 'translateY(0) scale(1)';
+                (e.target as HTMLButtonElement).style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+              }
+            }}
+            onMouseDown={(e) => {
+              if (!loading) {
+                (e.target as HTMLButtonElement).style.transform = 'scale(0.98)';
+              }
+            }}
+            onMouseUp={(e) => {
+              if (!loading) {
+                (e.target as HTMLButtonElement).style.transform = 'scale(1)';
+              }
+            }}
           >
-            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
+            {loading ? (
+              <>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTop: '2px solid #ffffff',
+                  borderRadius: '50%',
+                  animation: 'spin 0.6s linear infinite'
+                }} />
+                Processing...
+              </>
+            ) : (
+              <>
+                {isLogin ? 'Sign In' : 'Create Account'}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </>
+            )}
           </button>
 
           {isLogin && (
             <>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', margin: '0.5rem 0' }}>
                 <div style={{ 
                   position: 'absolute', 
                   inset: 0, 
@@ -648,14 +931,17 @@ const LoginPage: React.FC = () => {
                   position: 'relative', 
                   display: 'flex', 
                   justifyContent: 'center', 
-                  fontSize: '0.875rem' 
+                  fontSize: '0.75rem' 
                 }}>
                   <span style={{ 
-                    padding: '0 0.5rem', 
+                    padding: '0 0.75rem', 
                     background: 'var(--surface)', 
-                    color: 'var(--text-muted)' 
+                    color: 'var(--text-muted)',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
                   }}>
-                    Or continue with
+                    Or
                   </span>
                 </div>
               </div>
@@ -679,21 +965,48 @@ const LoginPage: React.FC = () => {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  padding: '0.5rem 1rem',
+                  gap: '0.5rem',
+                  padding: '0.875rem 1rem',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md)',
                   fontSize: '0.875rem',
-                  fontWeight: '500',
+                  fontWeight: '600',
                   color: 'var(--text)',
                   background: 'var(--bg)',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background 0.2s',
-                  opacity: loading ? 0.5 : 1
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  opacity: loading ? 0.6 : 1,
+                  boxShadow: 'var(--shadow-sm)',
+                  animation: 'fadeInUp 0.9s ease-out'
                 }}
-                onMouseOver={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--surface-2)')}
-                onMouseOut={(e) => !loading && ((e.target as HTMLButtonElement).style.background = 'var(--bg)')}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.background = 'var(--bg-alt)';
+                    (e.target as HTMLButtonElement).style.borderColor = 'var(--accent)';
+                    (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                    (e.target as HTMLButtonElement).style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.background = 'var(--bg)';
+                    (e.target as HTMLButtonElement).style.borderColor = 'var(--border)';
+                    (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
+                    (e.target as HTMLButtonElement).style.boxShadow = 'var(--shadow-sm)';
+                  }
+                }}
+                onMouseDown={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.transform = 'scale(0.98)';
+                  }
+                }}
+                onMouseUp={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.transform = 'scale(1)';
+                  }
+                }}
               >
-                <svg style={{ width: '1.25rem', height: '1.25rem', marginRight: '0.5rem' }} viewBox="0 0 24 24">
+                <svg style={{ width: '18px', height: '18px' }} viewBox="0 0 24 24">
                   <path
                     fill="#4285f4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -711,26 +1024,32 @@ const LoginPage: React.FC = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Sign in with Google
+                Continue with Google
               </button>
             </>
           )}
           
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
               style={{
                 color: 'var(--accent)',
                 fontSize: '0.875rem',
-                fontWeight: '500',
+                fontWeight: '600',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                textDecoration: 'underline'
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                padding: '0.5rem'
               }}
-              onMouseOver={(e) => (e.target as HTMLButtonElement).style.color = 'color-mix(in srgb, var(--accent) 80%, black)'}
-              onMouseOut={(e) => (e.target as HTMLButtonElement).style.color = 'var(--accent)'}
+              onMouseEnter={(e) => {
+                (e.target as HTMLButtonElement).style.textDecoration = 'underline';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLButtonElement).style.textDecoration = 'none';
+              }}
             >
               {isLogin 
                 ? "Don't have an account? Sign up" 
@@ -739,6 +1058,7 @@ const LoginPage: React.FC = () => {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

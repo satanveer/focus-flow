@@ -4,6 +4,7 @@ import { calendarService, type AppwriteCalendarEvent } from '../lib/appwrite';
 import { calendarSyncService, type SyncResult } from '../lib/calendarSync';
 import { googleCalendarService } from '../lib/googleCalendar';
 import { useAuth } from './AuthContext';
+import { toast } from '../components/Toast';
 import type { CalendarEvent, CalendarView, TimeBlock, ProductivityGoal } from '../domain/models';
 
 // Calendar state interface
@@ -329,7 +330,8 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
       setIsGoogleConnecting(false);
       
       // Show user-friendly error
-      alert(`Failed to connect Google Calendar: ${error instanceof Error ? error.message : 'Unknown error'}. Please check that your Google Calendar credentials are configured in the .env file.`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to connect Google Calendar: ${errorMessage}. Please check your credentials.`, 7000);
       throw error;
     }
   }, [isGoogleConnecting]);

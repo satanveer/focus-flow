@@ -1,0 +1,39 @@
+# Security Headers for Production
+/*
+  # Prevent clickjacking attacks
+  X-Frame-Options: DENY
+  
+  # XSS Protection
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  
+  # Referrer Policy - don't leak sensitive info
+  Referrer-Policy: strict-origin-when-cross-origin
+  
+  # Permissions Policy - restrict what browser features can be used
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()
+  
+  # Content Security Policy - prevent XSS and data injection attacks
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://cloud.appwrite.io https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self';
+  
+  # HSTS - force HTTPS
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  
+  # Cache Control for security-sensitive pages
+  Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+# Cache static assets aggressively
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/chunks/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/entries/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service Worker should be fresh
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate

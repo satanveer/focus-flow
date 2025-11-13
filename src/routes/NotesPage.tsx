@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAppwriteNotes } from '../features/notes/AppwriteNotesContext';
 import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
 import { Modal } from '../components/Modal';
+import { toast } from '../components/Toast';
 import type { Note } from '../domain/models';
 
 const FolderIcon: React.FC<{open?: boolean}> = ({open}) => <span style={{marginRight:4}}>{open? '📂':'📁'}</span>;
@@ -108,7 +109,7 @@ export default function NotesPage(){
       setTempName('');
     } catch (error) {
       console.error('Error in submitDialog:', error);
-      alert('Failed to perform action. Please try again.');
+      toast.error('Failed to perform action. Please try again.');
     }
   }
 

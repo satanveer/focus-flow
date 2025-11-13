@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAppwriteTasksContext } from '../AppwriteTasksContext';
+import { usePomodoro } from '../../pomodoro/PomodoroContext';
 
 export const AppwriteTaskStats: React.FC = () => {
   const { stats, loading } = useAppwriteTasksContext();
+  const { sessions } = usePomodoro();
   const pct = stats.total === 0 ? 0 : Math.round(stats.completionRate * 100);
-  const focusMins = Math.round(stats.totalFocusSeconds / 60);
+  
+  // Calculate actual focus minutes from session data
+  const focusMins = useMemo(() => {
+    if (!sessions) return 0;
+    const focusSeconds = sessions
+      .filter((s: any) => s.mode === 'focus' && s.endedAt)
+      .reduce((total: number, s: any) => total + s.durationSec, 0);
+    return Math.round(focusSeconds / 60);
+  }, [sessions]);
 
   if (loading) {
     return (

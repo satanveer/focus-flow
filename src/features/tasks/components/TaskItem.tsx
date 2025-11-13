@@ -105,9 +105,9 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
           <div className="task-meta mt-1.5 sm:mt-2 gap-1 sm:gap-2" style={{display:'flex', flexWrap:'wrap', alignItems:'center'}}>
             {dueInfo(task)}
             {task.tags.map(tag => <span key={tag} className="tag" style={{background:`hsl(${(tagColor(tag).match(/\d+/)||['0'])[0]} 70% 18%)`, borderColor: tagColor(tag), color: tagColor(tag)}}>{tag}</span>)}
-            {typeof task.focusSeconds === 'number' && task.focusSeconds > 0 && (
-              <span className="tag" style={{background:'var(--accent-accent2)', borderColor:'var(--accent-accent3)', color:'#fff'}} aria-label={`Focused ${Math.round(task.focusSeconds/60)} minutes total on this task`}>
-                {Math.round(task.focusSeconds/60)}m
+            {totalMinutes > 0 && (
+              <span className="tag" style={{background:'var(--accent-accent2)', borderColor:'var(--accent-accent3)', color:'#fff'}} aria-label={`Focused ${totalMinutes} minutes total on this task`}>
+                {totalMinutes}m
               </span>
             )}
           </div>

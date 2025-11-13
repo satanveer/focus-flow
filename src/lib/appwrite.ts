@@ -270,7 +270,7 @@ export class AuthService {
 
   async handleOAuthTokenCallback(userId: string, secret: string) {
     try {
-      console.log('🔍 Creating session from OAuth token...', { userId: userId.substring(0, 8) + '...', secret: secret.substring(0, 8) + '...' });
+      // Security: Do not log sensitive OAuth parameters
       
       // Create a session using the OAuth2 token
       await account.createSession(userId, secret);

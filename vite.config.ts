@@ -29,8 +29,18 @@ export default defineConfig({
       }
     },
     chunkSizeWarningLimit: 1000,
-    // Minification (terser will still minify, just without custom options for TS compatibility)
+    // Minification with security-focused options
     minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove all console.* calls in production
+        drop_debugger: true, // Remove debugger statements
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn']
+      },
+      format: {
+        comments: false // Remove all comments
+      }
+    },
     // Source maps for production debugging (set to false for smaller builds)
     sourcemap: false,
   },

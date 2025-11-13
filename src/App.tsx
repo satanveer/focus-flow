@@ -13,6 +13,7 @@ import { PomodoroProvider } from './features/pomodoro/PomodoroContext';
 import { AppwritePomodoroProvider } from './features/pomodoro/AppwritePomodoroContext';
 import TabTitleUpdater from './components/TabTitleUpdater';
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
+import { ToastContainer, useToast } from './components/Toast';
 
 import { AppwriteNotesProvider } from './features/notes/AppwriteNotesContext';
 import { AuthProvider, ProtectedRoute } from './contexts/AuthContext';
@@ -20,6 +21,8 @@ import { AppwriteTasksProvider } from './features/tasks/AppwriteTasksContext';
 import { CalendarProvider } from './contexts/CalendarContext';
 
 function App() {
+  const { toasts, close } = useToast();
+
   return (
     <GlobalErrorBoundary>
       <AuthProvider>
@@ -56,6 +59,7 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
+        <ToastContainer toasts={toasts} onClose={close} />
       </AuthProvider>
     </GlobalErrorBoundary>
   );

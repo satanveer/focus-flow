@@ -617,7 +617,7 @@ export class CalendarSyncService {
     return {
       autoSync: true, // Changed to true by default
       autoLogSessions: true,
-      syncInterval: 15, // 15 minutes default
+      syncInterval: 2, // 2 minutes for more frequent updates
     };
   }
 
