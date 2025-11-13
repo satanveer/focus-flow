@@ -183,6 +183,8 @@ export class GoogleCalendarService {
       throw new Error('Google OAuth credentials not configured');
     }
 
+    console.log('🔄 Refreshing Google Calendar access token...');
+
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -197,7 +199,8 @@ export class GoogleCalendarService {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to refresh token: ${response.status} ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Failed to refresh token: ${response.status} ${errorData.error || response.statusText}`);
     }
 
     const data = await response.json();
@@ -206,8 +209,10 @@ export class GoogleCalendarService {
       throw new Error(`OAuth error: ${data.error_description || data.error}`);
     }
 
-    // Update tokens
-    this.setAccessToken(data.access_token, undefined, data.expires_in);
+    console.log('✅ Token refreshed, expires in:', data.expires_in, 'seconds');
+
+    // Update tokens - keep the existing refresh_token
+    await this.setAccessToken(data.access_token, this.refreshToken, data.expires_in);
   }
 
   // Check if we have a valid token (synchronous - only checks memory)
@@ -219,9 +224,25 @@ export class GoogleCalendarService {
   async hasValidTokens(): Promise<boolean> {
     try {
       await this.initializeTokens();
+      
+      // If tokens are expired but we have a refresh token, try refreshing
+      if (!this.isAuthenticated() && this.refreshToken) {
+        console.log('🔄 Token expired, attempting to refresh...');
+        try {
+          await this.refreshAccessToken();
+          console.log('✅ Token refreshed successfully');
+          return this.isAuthenticated();
+        } catch (error) {
+          console.error('❌ Failed to refresh token:', error);
+          await this.clearAccessToken();
+          return false;
+        }
+      }
+      
       return this.isAuthenticated();
     } catch (error) {
       // If we can't check tokens (e.g., user not logged in yet), return false
+      console.error('Error checking token validity:', error);
       return false;
     }
   }
@@ -230,13 +251,19 @@ export class GoogleCalendarService {
   getAuthUrl(): string {
     const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
     
+    if (!clientId) {
+      console.error('❌ VITE_GOOGLE_CALENDAR_CLIENT_ID is not configured in .env file');
+      throw new Error('Google Calendar is not configured. Please add VITE_GOOGLE_CALENDAR_CLIENT_ID and VITE_GOOGLE_CALENDAR_CLIENT_SECRET to your .env file.');
+    }
+    
     // Use the exact current origin to avoid redirect URI mismatches
     const redirectUri = `${window.location.origin}/auth/google-calendar`;
     const scope = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events';
     
-    if (!clientId) {
-      throw new Error('VITE_GOOGLE_CALENDAR_CLIENT_ID is not configured');
-    }
+    console.log('🔧 Building OAuth URL with:');
+    console.log('  - Client ID:', clientId.substring(0, 20) + '...');
+    console.log('  - Redirect URI:', redirectUri);
+    console.log('  - Scope:', scope);
     
     const params = new URLSearchParams({
       client_id: clientId,

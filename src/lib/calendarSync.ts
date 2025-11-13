@@ -29,6 +29,7 @@ export interface SyncConflict {
 export class CalendarSyncService {
   private syncInProgress = false;
   private currentUserId: string | null = null;
+  private autoSyncInterval: number | null = null;
 
   // Check if sync is available
   async canSync(): Promise<boolean> {
@@ -43,6 +44,161 @@ export class CalendarSyncService {
   // Get sync status
   isSyncing(): boolean {
     return this.syncInProgress;
+  }
+
+  // Initialize automatic sync for a user
+  async initializeAutoSync(userId: string, onSyncComplete?: () => void): Promise<void> {
+    this.currentUserId = userId;
+    
+    const canSync = await this.canSync();
+    if (!canSync) {
+      console.log('⏭️ Google Calendar not connected, skipping auto-sync initialization');
+      return;
+    }
+
+    // Perform initial sync to import all Google Calendar events
+    try {
+      console.log('🔄 Performing initial Google Calendar sync...');
+      const result = await this.sync(userId, { direction: 'pull' });
+      console.log('✅ Initial sync complete:', result);
+      
+      // Remove any duplicates that might have been created
+      console.log('🧹 Checking for duplicates...');
+      const cleanupResult = await this.removeDuplicates(userId);
+      if (cleanupResult.removed > 0) {
+        console.log(`🗑️ Removed ${cleanupResult.removed} duplicate events`);
+      }
+      
+      // Trigger callback to refresh UI after initial sync and cleanup
+      if (onSyncComplete && (result.imported > 0 || result.updated > 0 || cleanupResult.removed > 0)) {
+        onSyncComplete();
+      }
+    } catch (error) {
+      console.error('❌ Initial sync failed:', error);
+    }
+
+    // Set up auto-sync if enabled
+    const settings = this.getSyncSettings();
+    if (settings.autoSync) {
+      this.startAutoSync(userId, onSyncComplete);
+    }
+  }
+
+  // Start automatic background sync
+  startAutoSync(userId: string, onSyncComplete?: () => void): void {
+    // Clear any existing interval
+    this.stopAutoSync();
+
+    const settings = this.getSyncSettings();
+    const intervalMs = settings.syncInterval * 60 * 1000; // Convert minutes to ms
+
+    console.log(`🔄 Starting auto-sync every ${settings.syncInterval} minutes`);
+
+    this.autoSyncInterval = setInterval(async () => {
+      try {
+        console.log('🔄 Running scheduled sync...');
+        const result = await this.sync(userId, { direction: 'pull' });
+        console.log('✅ Scheduled sync complete:', result);
+        
+        // Trigger callback to refresh UI
+        if (onSyncComplete && (result.imported > 0 || result.updated > 0)) {
+          onSyncComplete();
+        }
+      } catch (error) {
+        console.error('❌ Scheduled sync failed:', error);
+      }
+    }, intervalMs);
+  }
+
+  // Stop automatic background sync
+  stopAutoSync(): void {
+    if (this.autoSyncInterval) {
+      clearInterval(this.autoSyncInterval);
+      this.autoSyncInterval = null;
+      console.log('⏸️ Auto-sync stopped');
+    }
+  }
+
+  // Remove duplicate events (for cleanup)
+  async removeDuplicates(userId: string): Promise<{ removed: number; errors: string[] }> {
+    const result = { removed: 0, errors: [] as string[] };
+    
+    try {
+      console.log('🧹 Checking for duplicate events...');
+      
+      // Get all events
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString();
+      
+      const allEvents = await calendarService.getEvents(userId, startDate, endDate);
+      
+      // Group events by Google Calendar ID and title+startTime
+      const eventsByGoogleId = new Map<string, AppwriteCalendarEvent[]>();
+      const eventsByKey = new Map<string, AppwriteCalendarEvent[]>();
+      
+      for (const event of allEvents) {
+        // Group by Google Calendar ID
+        if (event.googleCalendarId) {
+          const existing = eventsByGoogleId.get(event.googleCalendarId) || [];
+          existing.push(event);
+          eventsByGoogleId.set(event.googleCalendarId, existing);
+        }
+        
+        // Group by title+startTime
+        const key = `${event.title}-${new Date(event.startTime).toISOString()}`;
+        const existing = eventsByKey.get(key) || [];
+        existing.push(event);
+        eventsByKey.set(key, existing);
+      }
+      
+      // Find and remove duplicates
+      const toDelete = new Set<string>();
+      
+      // Check Google Calendar ID duplicates
+      for (const [googleId, events] of eventsByGoogleId.entries()) {
+        if (events.length > 1) {
+          console.log(`🔍 Found ${events.length} duplicates for Google Calendar ID: ${googleId}`);
+          // Keep the first one, mark others for deletion
+          events.slice(1).forEach(event => toDelete.add(event.$id));
+        }
+      }
+      
+      // Check title+time duplicates (only if not already marked)
+      for (const [key, events] of eventsByKey.entries()) {
+        if (events.length > 1) {
+          const notMarked = events.filter(e => !toDelete.has(e.$id));
+          if (notMarked.length > 1) {
+            console.log(`🔍 Found ${notMarked.length} duplicates for: ${key}`);
+            // Keep the one with Google Calendar ID, or the first one
+            const withGoogleId = notMarked.find(e => e.googleCalendarId);
+            const toKeep = withGoogleId || notMarked[0];
+            notMarked.filter(e => e.$id !== toKeep.$id).forEach(event => toDelete.add(event.$id));
+          }
+        }
+      }
+      
+      // Delete duplicates
+      for (const eventId of toDelete) {
+        try {
+          await calendarService.deleteEvent(eventId);
+          result.removed++;
+          console.log(`🗑️ Removed duplicate event: ${eventId}`);
+        } catch (error) {
+          const errorMsg = `Failed to delete duplicate event ${eventId}: ${error}`;
+          console.error(errorMsg);
+          result.errors.push(errorMsg);
+        }
+      }
+      
+      console.log(`✅ Duplicate cleanup complete: ${result.removed} removed`);
+    } catch (error) {
+      const errorMsg = `Failed to remove duplicates: ${error}`;
+      console.error(errorMsg);
+      result.errors.push(errorMsg);
+    }
+    
+    return result;
   }
 
   // Main sync function
@@ -120,48 +276,88 @@ export class CalendarSyncService {
     };
 
     try {
+      console.log('📥 Pulling events from Google Calendar...');
+      
       const googleResponse = await googleCalendarService.getEvents({
         timeMin: options.timeMin.toISOString(),
         timeMax: options.timeMax.toISOString(),
         maxResults: 500,
       });
 
+      console.log(`📊 Found ${googleResponse.items.length} events in Google Calendar`);
+
       // Get existing Focus Flow events for the current user
       const localEvents = await calendarService.getEvents(
-        this.currentUserId!, // Use the userId passed to sync method
+        this.currentUserId!, 
         options.timeMin.toISOString(),
         options.timeMax.toISOString()
       );
 
-      // Create lookup map for local events by title and start time (since we don't have Google ID stored yet)
-      const localEventMap = new Map<string, AppwriteCalendarEvent>();
+      console.log(`📊 Found ${localEvents.length} events in Appwrite`);
+
+      // Create lookup maps for better matching
+      const localEventsByGoogleId = new Map<string, AppwriteCalendarEvent>();
+      const localEventsByKey = new Map<string, AppwriteCalendarEvent>();
+      
       localEvents.forEach(event => {
-        const key = `${event.title}-${event.startTime}`;
-        localEventMap.set(key, event);
+        // Map by Google Calendar ID if it exists (primary key)
+        if (event.googleCalendarId) {
+          localEventsByGoogleId.set(event.googleCalendarId, event);
+        }
+        
+        // Also map by title+startTime as fallback (normalize the date)
+        try {
+          const eventStartTime = new Date(event.startTime).toISOString();
+          const key = `${event.title}-${eventStartTime}`;
+          localEventsByKey.set(key, event);
+        } catch (error) {
+          console.warn('Failed to parse event start time:', event.title, error);
+        }
       });
 
       for (const googleEvent of googleResponse.items) {
         try {
           // Skip Focus Flow created events to avoid duplicates
           if (googleCalendarService.isFocusFlowEvent(googleEvent)) {
+            console.log(`⏭️ Skipping Focus Flow event: ${googleEvent.summary}`);
             continue;
           }
 
-          const startTime = googleEvent.start.dateTime || googleEvent.start.date!;
-          const eventKey = `${googleEvent.summary}-${startTime}`;
-          const existingLocal = localEventMap.get(eventKey);
+          // Check if event already exists in Appwrite by Google Calendar ID (most reliable)
+          let existingLocal = googleEvent.id ? localEventsByGoogleId.get(googleEvent.id) : undefined;
+          
+          // Fallback: check by title and start time (normalize dates for comparison)
+          if (!existingLocal) {
+            const startTime = googleEvent.start.dateTime || googleEvent.start.date!;
+            const normalizedStartTime = new Date(startTime).toISOString();
+            const eventKey = `${googleEvent.summary}-${normalizedStartTime}`;
+            existingLocal = localEventsByKey.get(eventKey);
+            
+            if (existingLocal) {
+              console.log(`🔍 Found existing event by title+time: ${googleEvent.summary}`);
+              
+              // Update the existing event to include Google Calendar ID for future syncs
+              if (!existingLocal.googleCalendarId && googleEvent.id) {
+                console.log(`📝 Adding Google Calendar ID to existing event: ${googleEvent.summary}`);
+              }
+            }
+          }
           
           if (existingLocal) {
             // Check if update is needed
             if (this.needsUpdate(existingLocal, googleEvent)) {
+              console.log(`🔄 Updating event: ${googleEvent.summary}`);
               if (!options.dryRun) {
                 const updatedEvent = this.convertGoogleToAppwrite(googleEvent, this.currentUserId!);
                 await calendarService.updateEvent(existingLocal.$id, updatedEvent);
               }
               result.updated++;
+            } else {
+              console.log(`✓ Event already up-to-date: ${googleEvent.summary}`);
             }
           } else {
             // Import new event
+            console.log(`➕ Importing new event: ${googleEvent.summary}`);
             if (!options.dryRun) {
               const localEvent = this.convertGoogleToAppwrite(googleEvent, this.currentUserId!);
               await calendarService.createEvent(localEvent);
@@ -169,11 +365,17 @@ export class CalendarSyncService {
             result.imported++;
           }
         } catch (error) {
-          result.errors.push(`Failed to sync Google event ${googleEvent.id}: ${error}`);
+          const errorMsg = `Failed to sync Google event ${googleEvent.id}: ${error}`;
+          console.error(errorMsg);
+          result.errors.push(errorMsg);
         }
       }
+      
+      console.log(`✅ Sync complete: ${result.imported} imported, ${result.updated} updated`);
     } catch (error) {
-      result.errors.push(`Failed to pull from Google Calendar: ${error}`);
+      const errorMsg = `Failed to pull from Google Calendar: ${error}`;
+      console.error(errorMsg);
+      result.errors.push(errorMsg);
     }
 
     return result;
@@ -226,10 +428,24 @@ export class CalendarSyncService {
     const startDate = new Date(googleEvent.start.dateTime || googleEvent.start.date!);
     const endDate = new Date(googleEvent.end.dateTime || googleEvent.end.date!);
 
+    // Determine event type from Google Calendar metadata or description
+    let eventType: 'focus' | 'break' | 'task' | 'meeting' | 'personal' | 'goal' = 'meeting';
+    const focusFlowType = googleEvent.extendedProperties?.private?.focusFlowType;
+    if (focusFlowType === 'focus' || focusFlowType === 'break' || focusFlowType === 'task') {
+      eventType = focusFlowType;
+    } else {
+      // Infer type from summary/description
+      const summary = googleEvent.summary.toLowerCase();
+      if (summary.includes('focus') || summary.includes('🎯')) eventType = 'focus';
+      else if (summary.includes('break') || summary.includes('☕') || summary.includes('🧘')) eventType = 'break';
+      else if (summary.includes('task') || summary.includes('✅')) eventType = 'task';
+      else if (summary.includes('personal') || summary.includes('🏠')) eventType = 'personal';
+    }
+
     return {
       title: googleEvent.summary,
       description: googleEvent.description || '',
-      type: 'meeting', // Default type for Google Calendar events
+      type: eventType,
       status: 'scheduled',
       startTime: startDate.toISOString(),
       endTime: endDate.toISOString(),
@@ -241,6 +457,11 @@ export class CalendarSyncService {
       attendees: JSON.stringify(googleEvent.attendees?.map(a => a.email) || []),
       reminders: JSON.stringify([15]), // Default 15 min reminder
       tags: JSON.stringify(['google-calendar']),
+      // Google Calendar sync fields
+      googleCalendarId: googleEvent.id,
+      googleCalendarEtag: googleEvent.id, // Use ID as etag for now
+      source: 'google',
+      lastSyncedAt: new Date().toISOString(),
       userId,
     };
   }
@@ -392,8 +613,9 @@ export class CalendarSyncService {
       };
     }
     
+    // Default settings - auto-sync enabled by default
     return {
-      autoSync: false,
+      autoSync: true, // Changed to true by default
       autoLogSessions: true,
       syncInterval: 15, // 15 minutes default
     };

@@ -267,9 +267,9 @@ export default function NotesPage(){
         maxWidth:isNarrow? undefined:420,
         display: isNarrow && activeMobilePane!=='folders'? 'none':'flex',
         flexDirection:'column', borderRight: isNarrow? 'none':'1px solid var(--border)', background:'var(--surface)', backdropFilter:'blur(6px)'}} aria-label="Folders panel">
-        <div style={{padding:'.6rem .75rem', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--border)'}}>
-          <h2 style={{fontSize:'.65rem', letterSpacing:'.15em', textTransform:'uppercase', margin:0}}>Folders</h2>
-          <button className="btn primary" style={{fontSize:'.55rem'}} onClick={()=> openCreateFolder(null)}>＋</button>
+        <div style={{padding:'.6rem .75rem', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--border)', gap:8}}>
+          <h2 style={{fontSize:'.65rem', letterSpacing:'.15em', textTransform:'uppercase', margin:0, whiteSpace:'nowrap'}}>Folders</h2>
+          <button className="btn primary" style={{fontSize:'.55rem', padding:'.4rem .6rem', whiteSpace:'nowrap'}} onClick={()=> openCreateFolder(null)}>＋</button>
         </div>
         <div style={{padding:'.5rem .6rem', borderBottom:'1px solid var(--border)'}}>
           <input placeholder="Search..." value={search} onChange={e=> setSearch(e.target.value)} aria-label="Search notes" style={{width:'100%', fontSize:'.55rem', padding:'.4rem .55rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--bg-alt)'}} />
@@ -292,7 +292,17 @@ export default function NotesPage(){
                 onDragEnd={()=> { setDragNoteId(null); setDragOverFolder(null);} }
                 onClick={()=> {setActiveNoteId(n.id); setActiveFolder(null);} }
                 className={`btn subtle ${n.id===activeNoteId? 'primary':''}`}
-                style={{fontSize:'.5rem', justifyContent:'flex-start', opacity: dragNoteId===n.id? .4:1}}
+                style={{
+                  fontSize:'.5rem', 
+                  justifyContent:'flex-start', 
+                  opacity: dragNoteId===n.id? .4:1,
+                  padding:'.45rem .55rem',
+                  whiteSpace:'nowrap',
+                  overflow:'hidden',
+                  textOverflow:'ellipsis',
+                  textAlign:'left',
+                  display:'block'
+                }}
               >
                 📝 {n.title||'Untitled'}
               </button>
@@ -308,15 +318,15 @@ export default function NotesPage(){
         maxWidth:isNarrow? undefined:500,
         display: isNarrow && activeMobilePane!=='notes'? 'none':'flex',
         flexDirection:'column', borderRight: isNarrow? 'none':'1px solid var(--border)', background:'var(--surface-elev)'}} aria-label="Notes list">
-        <div style={{padding:'.6rem .75rem', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--border)'}}>
-          <div style={{display:'flex', alignItems:'center', gap:8}}>
-            <h2 style={{fontSize:'.65rem', letterSpacing:'.15em', textTransform:'uppercase', margin:0}}>Notes</h2>
-            <select value={filterTaskId} onChange={e=> setFilterTaskId(e.target.value)} style={{fontSize:'.55rem'}} aria-label="Filter notes by task">
+        <div style={{padding:'.6rem .75rem', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--border)', gap:8, flexWrap:'wrap'}}>
+          <div style={{display:'flex', alignItems:'center', gap:8, flex:'1 1 auto', minWidth:0}}>
+            <h2 style={{fontSize:'.65rem', letterSpacing:'.15em', textTransform:'uppercase', margin:0, whiteSpace:'nowrap'}}>Notes</h2>
+            <select value={filterTaskId} onChange={e=> setFilterTaskId(e.target.value)} style={{fontSize:'.55rem', minWidth:100, maxWidth:150}} aria-label="Filter notes by task">
               <option value="">All tasks</option>
               {tasks.map(t=> <option key={t.id} value={t.id}>{t.title}</option>)}
             </select>
           </div>
-          <button className="btn primary" style={{fontSize:'.55rem'}} onClick={openCreateNote}>New</button>
+          <button className="btn primary" style={{fontSize:'.55rem', padding:'.4rem .6rem', whiteSpace:'nowrap'}} onClick={openCreateNote}>New</button>
         </div>
         <div style={{flex:1, overflowY:'auto'}}>
           {notesInFolder.length===0 && <div style={{padding:'.75rem', fontSize:'.55rem', color:'var(--text-muted)'}}>No notes match.</div>}

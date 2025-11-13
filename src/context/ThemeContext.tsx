@@ -13,18 +13,31 @@ interface ThemeCtx {
 const ThemeContext = createContext<ThemeCtx | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('system');
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Load theme from localStorage on init
+    const saved = localStorage.getItem('theme');
+    return (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'system';
+  });
 
   const resolvedTheme: Resolved = theme === 'system'
     ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
     : theme;
 
+  // Save theme to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   // Apply on every resolvedTheme change
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute('data-theme', resolvedTheme);
-    if (resolvedTheme === 'dark') root.classList.add('dark');
-    else root.classList.remove('dark');
+    if (resolvedTheme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    console.log('🎨 Theme changed to:', resolvedTheme, 'Dark class:', root.classList.contains('dark'));
   }, [resolvedTheme]);
 
   // Listen to system changes only when theme === 'system'

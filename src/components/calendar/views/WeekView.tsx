@@ -111,19 +111,23 @@ const WeekView: React.FC = () => {
     <>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Week header with days */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-          <div className="w-12 sm:w-20 min-w-12 sm:min-w-20 bg-gray-50 dark:bg-gray-800" /> {/* Time column */}
+        <div className="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-w-full">
+          {/* Time column placeholder - fixed width */}
+          <div className="w-16 sm:w-20 flex-shrink-0 bg-white dark:bg-gray-800" />
+          
+          {/* Day headers - equal width */}
           {weekDays.map((day, i) => (
             <div
               key={i}
-              className={`flex-1 p-2 sm:p-4 text-center border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${
-                day.toDateString() === today ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+              className={`flex-1 p-3 text-center border-l border-gray-200 dark:border-gray-700 min-w-0 ${
+                day.toDateString() === today ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'
               }`}
+              style={{ width: `calc((100% - 5rem) / ${weekDays.length})` }}
             >
-              <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium mb-0.5 sm:mb-1">
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1 truncate">
                 {day.toLocaleDateString(undefined, { weekday: 'short' })}
               </div>
-              <div className={`text-sm sm:text-base font-semibold w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full mx-auto ${
+              <div className={`text-base font-semibold w-8 h-8 flex items-center justify-center rounded-full mx-auto ${
                 day.toDateString() === today 
                   ? 'bg-blue-600 text-white' 
                   : 'text-gray-900 dark:text-gray-100'
@@ -134,7 +138,6 @@ const WeekView: React.FC = () => {
           ))}
         </div>
 
-      {/* Time grid */}
       <div className="flex-1 overflow-y-auto relative">
         {state.events.length === 0 ? (
           /* Empty state - properly contained */
@@ -159,28 +162,31 @@ const WeekView: React.FC = () => {
           </div>
         ) : (
           /* Time grid with events */
-          <div className="flex min-h-full">
-            {/* Time column */}
-            <div className="w-12 sm:w-20 min-w-12 sm:min-w-20 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+          <div className="flex min-w-full">
+            {/* Time column - fixed width */}
+            <div className="w-16 sm:w-20 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               {hours.map(hour => (
-                <div key={hour} className="h-12 sm:h-16 border-b border-gray-100 dark:border-gray-700 flex items-start justify-end px-1 sm:px-2 py-1">
-                  <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-none">
+                <div key={hour} className="h-16 border-b border-gray-100 dark:border-gray-700 flex items-start justify-end px-2 py-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium leading-none">
                     {formatHour(hour)}
                   </span>
                 </div>
               ))}
             </div>
 
-            {/* Day columns */}
-            <div className="flex flex-1">
-              {weekDays.map((day, dayIndex) => (
-                <div key={dayIndex} className="flex-1 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            {/* Day columns - equal width, no flex grow */}
+            {weekDays.map((day, dayIndex) => (
+              <div 
+                key={dayIndex} 
+                className="flex-1 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-w-0"
+                style={{ width: `calc((100% - 5rem) / ${weekDays.length})` }}
+              >
                 {hours.map(hour => {
                   const events = getEventsForSlot(day, hour);
                   return (
                     <div
                       key={hour}
-                      className="h-12 sm:h-16 border-b border-gray-100 dark:border-gray-700 p-0.5 sm:p-1 relative hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors overflow-hidden"
+                      className="h-16 border-b border-gray-100 dark:border-gray-700 p-1 relative hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                       onClick={() => {
                         // Create new event at this time slot
                         const newEventTime = new Date(day);
@@ -188,40 +194,40 @@ const WeekView: React.FC = () => {
                       }}
                     >
                       {events.length > 0 && (
-                        <div className="flex flex-col gap-0.5 h-full justify-start">
-                          {events.slice(0, showMobileView ? 1 : 2).map((event) => (
+                        <div className="flex flex-col gap-0.5 h-full overflow-hidden">
+                          {events.slice(0, 2).map((event) => (
                             <div
                               key={event.id}
-                              className={`text-[10px] sm:text-xs p-0.5 sm:p-1 rounded truncate cursor-pointer flex-shrink-0 shadow-sm hover:shadow-md transition-shadow flex items-center justify-center ${getEventColorClasses(event)}`}
+                              className={`text-xs px-1 py-0.5 rounded cursor-pointer flex-shrink-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden ${getEventColorClasses(event)}`}
                               style={{ 
-                                height: events.length === 1 ? 'auto' : showMobileView ? '14px' : '16px',
-                                minHeight: showMobileView ? '14px' : '16px',
-                                maxHeight: showMobileView ? '18px' : '20px'
+                                minHeight: '20px',
+                                maxHeight: '26px'
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 showEventModal(event);
                               }}
+                              title={event.title}
                             >
-                              <div className="font-medium truncate leading-tight text-center">{event.title}</div>
+                              <div className="font-medium truncate leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                                {event.title}
+                              </div>
                             </div>
                           ))}
-                          {events.length > (showMobileView ? 1 : 2) && (
+                          {events.length > 2 && (
                             <div 
-                              className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded px-0.5 sm:px-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0 shadow-sm flex items-center justify-center"
-                              style={{ height: showMobileView ? '14px' : '16px', minHeight: showMobileView ? '14px' : '16px', maxHeight: showMobileView ? '18px' : '20px' }}
-                              onMouseEnter={(e) => handleMoreEventsHover(events.slice(showMobileView ? 1 : 2), e)}
+                              className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded px-1 py-0.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0 shadow-sm text-center overflow-hidden"
+                              style={{ minHeight: '18px', maxHeight: '20px' }}
+                              onMouseEnter={(e) => handleMoreEventsHover(events.slice(2), e)}
                               onMouseLeave={handleMoreEventsLeave}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Show first remaining event when clicking "+X more"
-                                const nextEventIndex = showMobileView ? 1 : 2;
-                                if (events[nextEventIndex]) {
-                                  showEventModal(events[nextEventIndex]);
+                                if (events[2]) {
+                                  showEventModal(events[2]);
                                 }
                               }}
                             >
-                              <div className="leading-tight font-medium text-center">+{events.length - (showMobileView ? 1 : 2)}</div>
+                              <div className="leading-tight font-medium whitespace-nowrap">+{events.length - 2}</div>
                             </div>
                           )}
                         </div>
@@ -231,7 +237,6 @@ const WeekView: React.FC = () => {
                 })}
               </div>
             ))}
-            </div>
           </div>
         )}
       </div>

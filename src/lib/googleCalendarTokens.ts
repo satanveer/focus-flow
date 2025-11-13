@@ -59,6 +59,15 @@ export class GoogleCalendarTokenManager {
       const now = Date.now();
       const buffer = 5 * 60 * 1000; // 5 minute buffer
       if (now >= tokens.expires_at - buffer) {
+        console.log('⚠️ Token expired or expiring soon');
+        
+        // Try to refresh if we have a refresh token
+        if (tokens.refresh_token) {
+          console.log('🔄 Attempting to refresh token...');
+          const refreshed = await this.refreshAccessToken();
+          return refreshed !== null;
+        }
+        
         return false;
       }
     }

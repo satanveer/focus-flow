@@ -6,11 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:prod": "tsc -b && vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
+    "preview:prod": "vite preview --mode production",
+    "analyze": "vite-bundle-visualizer",
     "setup-appwrite": "node setup-appwrite-db.js",
     "fix-appwrite": "node fix-appwrite-db.js",
-    "check-appwrite": "node check-appwrite-health.js"
+    "check-appwrite": "node check-appwrite-health.js",
+    "prod-setup": "bash scripts/production-setup.sh",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",

@@ -135,6 +135,11 @@ function convertAppwriteEvent(appwriteEvent: AppwriteCalendarEvent): CalendarEve
     attendees: appwriteEvent.attendees ? JSON.parse(appwriteEvent.attendees) : [],
     reminders: appwriteEvent.reminders ? JSON.parse(appwriteEvent.reminders) : [],
     tags: appwriteEvent.tags ? JSON.parse(appwriteEvent.tags) : [],
+    // Google Calendar sync fields
+    googleCalendarId: appwriteEvent.googleCalendarId,
+    googleCalendarEtag: appwriteEvent.googleCalendarEtag,
+    source: appwriteEvent.source,
+    lastSyncedAt: appwriteEvent.lastSyncedAt,
     createdAt: appwriteEvent.$createdAt,
     updatedAt: appwriteEvent.$updatedAt,
   };
@@ -178,6 +183,7 @@ interface CalendarContextType {
     connect: () => Promise<void>;
     disconnect: () => Promise<void>;
     sync: (options?: { direction?: 'pull' | 'push' | 'both'; dryRun?: boolean }) => Promise<SyncResult>;
+    removeDuplicates: () => Promise<{ removed: number; errors: string[] }>;
     lastSyncTime?: Date;
     refreshConnectionState: () => Promise<void>;
   };
@@ -227,13 +233,58 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
       try {
         const isConnected = await googleCalendarService.hasValidTokens();
         setGoogleConnected(isConnected);
+        
+        // If connected and user is logged in, initialize auto-sync with refresh callback
+        if (isConnected && user) {
+          await calendarSyncService.initializeAutoSync(user.$id, async () => {
+            // Refresh calendar data when sync completes
+            console.log('🔄 Auto-sync completed, refreshing calendar data...');
+            
+            // Refresh events directly here
+            try {
+              dispatch({ type: 'SET_LOADING', payload: { key: 'events', value: true } });
+              
+              const now = new Date();
+              const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+              const endDate = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
+              
+              const appwriteEvents = await calendarService.getEvents(user.$id, startDate, endDate);
+              const events = appwriteEvents.map(convertAppwriteEvent);
+              
+              dispatch({ type: 'SET_EVENTS', payload: events });
+            } catch (error) {
+              console.error('Failed to refresh calendar events after sync:', error);
+            } finally {
+              dispatch({ type: 'SET_LOADING', payload: { key: 'events', value: false } });
+            }
+          });
+        }
       } catch (error) {
         console.error('Failed to check Google Calendar connection:', error);
         setGoogleConnected(false);
       }
     };
-    checkConnection();
-  }, []);
+    
+    if (user) {
+      checkConnection();
+      
+      // Periodically check connection status (every 5 minutes)
+      // This ensures we detect and handle token expiration/refresh
+      const connectionCheckInterval = setInterval(() => {
+        checkConnection();
+      }, 5 * 60 * 1000); // 5 minutes
+      
+      return () => {
+        clearInterval(connectionCheckInterval);
+        calendarSyncService.stopAutoSync();
+      };
+    }
+    
+    // Cleanup: stop auto-sync when component unmounts
+    return () => {
+      calendarSyncService.stopAutoSync();
+    };
+  }, [user]);
 
   // Function to refresh Google connection state (for OAuth callback)
   const refreshGoogleConnectionState = useCallback(async () => {
@@ -262,16 +313,23 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
     
     setIsGoogleConnecting(true);
     try {
+      console.log('🔗 Attempting to connect Google Calendar...');
+      
       const authUrl = googleCalendarService.getAuthUrl();
+      console.log('✅ Auth URL generated:', authUrl);
       
       // Store the current page path to return to after auth
       localStorage.setItem('google_auth_return_path', window.location.pathname);
       
       // Redirect to Google OAuth (instead of popup)
+      console.log('🚀 Redirecting to Google OAuth...');
       window.location.href = authUrl;
     } catch (error) {
-      console.error('Failed to connect Google Calendar:', error);
+      console.error('❌ Failed to connect Google Calendar:', error);
       setIsGoogleConnecting(false);
+      
+      // Show user-friendly error
+      alert(`Failed to connect Google Calendar: ${error instanceof Error ? error.message : 'Unknown error'}. Please check that your Google Calendar credentials are configured in the .env file.`);
       throw error;
     }
   }, [isGoogleConnecting]);
@@ -306,6 +364,21 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
     calendarSyncService.updateLastSyncTime();
     return result;
   }, [googleConnected, user]);
+
+  const removeDuplicateEvents = useCallback(async () => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const result = await calendarSyncService.removeDuplicates(user.$id);
+    
+    if (result.removed > 0) {
+      // Refresh events after removing duplicates
+      await refreshData();
+    }
+    
+    return result;
+  }, [user]);
 
   // Sync settings
   const syncSettings = calendarSyncService.getSyncSettings();
@@ -453,6 +526,8 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
       attendees: JSON.stringify(eventData.attendees || []),
       reminders: JSON.stringify(eventData.reminders || []),
       tags: JSON.stringify(eventData.tags || []),
+      // Mark as local event since it's created in Focus Flow
+      source: 'local' as const,
     };
 
     console.log('📅 Appwrite event data:', appwriteEventData);
@@ -681,6 +756,7 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
       connect: connectGoogleCalendar,
       disconnect: disconnectGoogleCalendar,
       sync: syncGoogleCalendar,
+      removeDuplicates: removeDuplicateEvents,
       lastSyncTime: syncSettings.lastSyncTime,
       refreshConnectionState: refreshGoogleConnectionState,
     },

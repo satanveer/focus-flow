@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { usePomodoro } from '../features/pomodoro/PomodoroContext';
 import { useAppwriteTasksContext } from '../features/tasks/AppwriteTasksContext';
 import type { ProductivityRating } from '../domain/models';
@@ -13,26 +13,53 @@ export default function InsightsPage() {
   const { sessions } = usePomodoro();
   const { tasks } = useAppwriteTasksContext();
   const [range, setRange] = useState<RangeMode>('weekly');
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, -1 = last week, etc.
+  const [dayOffset, setDayOffset] = useState(0); // 0 = today, -1 = yesterday, etc.
+  const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
+  const [sessionsPage, setSessionsPage] = useState(0); // Pagination for sessions table
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Reset offsets when changing range modes
+  useEffect(() => {
+    setWeekOffset(0);
+    setDayOffset(0);
+    setMonthOffset(0);
+  }, [range]);
+
+  // Reset sessions page when range or offsets change
+  useEffect(() => {
+    setSessionsPage(0);
+  }, [range, weekOffset, dayOffset, monthOffset]);
 
   // Filter sessions according to selected range
   const filteredSessions = useMemo(() => {
     if(!sessions.length) return [] as typeof sessions;
     if(range==='daily'){
+      const targetDay = new Date(startOfToday.getTime() + dayOffset * 86400000);
       return sessions.filter(s => {
         const d = new Date(s.startedAt);
-        return d.getFullYear()=== startOfToday.getFullYear() && d.getMonth()=== startOfToday.getMonth() && d.getDate()=== startOfToday.getDate();
+        return d.getFullYear()=== targetDay.getFullYear() && d.getMonth()=== targetDay.getMonth() && d.getDate()=== targetDay.getDate();
       });
     }
     if(range==='weekly'){
-      const start = new Date(startOfToday.getTime() - 6*86400000); // last 7 days inclusive
-      return sessions.filter(s => new Date(s.startedAt) >= start);
+      // Calculate the week start based on offset
+      const weekStart = new Date(startOfToday.getTime() - 6*86400000 + weekOffset * 7 * 86400000);
+      const weekEnd = new Date(weekStart.getTime() + 6*86400000);
+      return sessions.filter(s => {
+        const sessionDate = new Date(s.startedAt);
+        return sessionDate >= weekStart && sessionDate <= weekEnd;
+      });
     }
-    // monthly => last 30 days
-    const start = new Date(startOfToday.getTime() - 29*86400000);
-    return sessions.filter(s => new Date(s.startedAt) >= start);
-  }, [sessions, range, startOfToday]);
+    // monthly - calculate based on monthOffset
+    const targetMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth() + monthOffset, 1);
+    const monthStart = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
+    const monthEnd = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0, 23, 59, 59);
+    return sessions.filter(s => {
+      const sessionDate = new Date(s.startedAt);
+      return sessionDate >= monthStart && sessionDate <= monthEnd;
+    });
+  }, [sessions, range, startOfToday, weekOffset, dayOffset, monthOffset]);
 
   const exportRows = useMemo(() => filteredSessions.map(s => ({
     id: s.id,
@@ -62,7 +89,7 @@ export default function InsightsPage() {
     }
     if(range==='weekly'){
       const days: { dateKey:string; label:string; minutes:number; sessions:number }[] = [];
-      const base = new Date(startOfToday.getTime() - 6*86400000);
+      const base = new Date(startOfToday.getTime() - 6*86400000 + weekOffset * 7 * 86400000);
       for(let i=0;i<7;i++){
         const d = new Date(base.getTime() + i*86400000);
         days.push({ dateKey: dateKey(d), label: d.toLocaleDateString(undefined,{weekday:'short'}), minutes:0, sessions:0 });
@@ -70,15 +97,17 @@ export default function InsightsPage() {
       focusSessions.forEach(s=> { const dk = dateKey(new Date(s.startedAt)); const bucket = days.find(d=> d.dateKey===dk); if(bucket){ bucket.minutes += Math.round(s.durationSec/60); bucket.sessions += 1; } });
       return days;
     }
+    // Monthly - show days in the selected month
     const days: { dateKey:string; label:string; minutes:number; sessions:number }[] = [];
-    const base = new Date(startOfToday.getTime() - 29*86400000);
-    for(let i=0;i<30;i++){
-      const d = new Date(base.getTime() + i*86400000);
-      days.push({ dateKey: dateKey(d), label: (d.getMonth()+1)+ '/' + d.getDate(), minutes:0, sessions:0 });
+    const targetMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth() + monthOffset, 1);
+    const daysInMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate();
+    for(let i=1; i<=daysInMonth; i++){
+      const d = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), i);
+      days.push({ dateKey: dateKey(d), label: i.toString(), minutes:0, sessions:0 });
     }
     focusSessions.forEach(s=> { const dk = dateKey(new Date(s.startedAt)); const bucket = days.find(d=> d.dateKey===dk); if(bucket){ bucket.minutes += Math.round(s.durationSec/60); bucket.sessions += 1; } });
     return days;
-  }, [filteredSessions, range, startOfToday]);
+  }, [filteredSessions, range, startOfToday, weekOffset, monthOffset]);
 
   // Stats cards
   const stats = useMemo(()=> {
@@ -231,16 +260,121 @@ export default function InsightsPage() {
       </div>
 
       <section className="card ff-stack" style={{padding:'1rem', gap:'.8rem'}}>
-        <div className="ff-row" style={{justifyContent:'space-between', alignItems:'center'}}>
-          <h2 style={{fontSize:'.85rem', margin:0}}>{range==='daily'? 'Today Hourly Focus':'Focus Trend'}</h2>
-          <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>{range==='daily'? 'Minutes per active hour': range==='weekly'? 'Last 7 days':'Last 30 days'}</span>
+        <div className="ff-row" style={{justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'.5rem'}}>
+          <div className="ff-row" style={{alignItems:'center', gap:'.5rem'}}>
+            <h2 style={{fontSize:'.85rem', margin:0}}>
+              {range==='daily'? 'Hourly Focus':'Focus Trend'}
+            </h2>
+            <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>
+              {range==='daily'? (() => {
+                const targetDay = new Date(startOfToday.getTime() + dayOffset * 86400000);
+                return targetDay.toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric', year: dayOffset < -30 || dayOffset > 30 ? 'numeric' : undefined});
+              })() : range==='weekly'? (() => {
+                const base = new Date(startOfToday.getTime() - 6*86400000 + weekOffset * 7 * 86400000);
+                const end = new Date(base.getTime() + 6*86400000);
+                return `${base.toLocaleDateString(undefined,{month:'short', day:'numeric'})} - ${end.toLocaleDateString(undefined,{month:'short', day:'numeric'})}`;
+              })() : (() => {
+                const targetMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth() + monthOffset, 1);
+                return targetMonth.toLocaleDateString(undefined,{month:'long', year:'numeric'});
+              })()}
+            </span>
+          </div>
+          {range === 'daily' && (
+            <div className="ff-row" style={{gap:4, background:'var(--surface)', padding:4, border:'1px solid var(--border)', borderRadius:999}}>
+              <button 
+                onClick={() => setDayOffset(dayOffset - 1)} 
+                className="btn subtle"
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                aria-label="Previous day"
+              >
+                ← Prev
+              </button>
+              <button 
+                onClick={() => setDayOffset(0)} 
+                className={`btn ${dayOffset === 0 ? 'primary' : 'subtle'}`}
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                aria-label="Today"
+              >
+                Today
+              </button>
+              <button 
+                onClick={() => setDayOffset(dayOffset + 1)} 
+                className="btn subtle"
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                disabled={dayOffset >= 0}
+                aria-label="Next day"
+              >
+                Next →
+              </button>
+            </div>
+          )}
+          {range === 'weekly' && (
+            <div className="ff-row" style={{gap:4, background:'var(--surface)', padding:4, border:'1px solid var(--border)', borderRadius:999}}>
+              <button 
+                onClick={() => setWeekOffset(weekOffset - 1)} 
+                className="btn subtle"
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                aria-label="Previous week"
+              >
+                ← Prev
+              </button>
+              <button 
+                onClick={() => setWeekOffset(0)} 
+                className={`btn ${weekOffset === 0 ? 'primary' : 'subtle'}`}
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                aria-label="Current week"
+              >
+                Current
+              </button>
+              <button 
+                onClick={() => setWeekOffset(weekOffset + 1)} 
+                className="btn subtle"
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                disabled={weekOffset >= 0}
+                aria-label="Next week"
+              >
+                Next →
+              </button>
+            </div>
+          )}
+          {range === 'monthly' && (
+            <div className="ff-row" style={{gap:4, background:'var(--surface)', padding:4, border:'1px solid var(--border)', borderRadius:999}}>
+              <button 
+                onClick={() => setMonthOffset(monthOffset - 1)} 
+                className="btn subtle"
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                aria-label="Previous month"
+              >
+                ← Prev
+              </button>
+              <button 
+                onClick={() => setMonthOffset(0)} 
+                className={`btn ${monthOffset === 0 ? 'primary' : 'subtle'}`}
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                aria-label="Current month"
+              >
+                Current
+              </button>
+              <button 
+                onClick={() => setMonthOffset(monthOffset + 1)} 
+                className="btn subtle"
+                style={{fontSize:'.55rem', padding:'.35rem .65rem', borderRadius:999}}
+                disabled={monthOffset >= 0}
+                aria-label="Next month"
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </div>
         <ChartArea />
       </section>
 
       {range==='daily' && (
         <section className="card ff-stack" style={{padding:'1rem', gap:'.6rem'}}>
-          <h2 style={{fontSize:'.85rem', margin:0}}>Today's Task Focus</h2>
+          <h2 style={{fontSize:'.85rem', margin:0}}>
+            {dayOffset === 0 ? "Today's Task Focus" : "Task Focus"}
+          </h2>
           <div style={{overflowX:'auto'}}>
             <table style={{width:'100%', borderCollapse:'collapse', fontSize:'.55rem'}}>
               <thead>
@@ -274,10 +408,37 @@ export default function InsightsPage() {
       )}
 
       <section className="card ff-stack" style={{padding:'1rem', gap:'.6rem'}}>
-        <h2 style={{fontSize:'.85rem', margin:0}}>Sessions ({exportRows.length})</h2>
-        <div style={{overflowX:'auto'}}>
+        <div className="ff-row" style={{justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'.5rem'}}>
+          <h2 style={{fontSize:'.85rem', margin:0}}>Sessions ({exportRows.length})</h2>
+          {exportRows.length > 5 && (
+            <div className="ff-row" style={{gap:4, alignItems:'center', background:'var(--surface)', padding:4, border:'1px solid var(--border)', borderRadius:999}}>
+              <button 
+                onClick={() => setSessionsPage(Math.max(0, sessionsPage - 1))} 
+                className="btn subtle"
+                style={{fontSize:'.55rem', padding:'.3rem .55rem', borderRadius:999}}
+                disabled={sessionsPage === 0}
+                aria-label="Previous page"
+              >
+                ←
+              </button>
+              <span style={{fontSize:'.55rem', color:'var(--text-muted)', padding:'0 .4rem', whiteSpace:'nowrap'}}>
+                {sessionsPage + 1} / {Math.ceil(exportRows.length / 5)}
+              </span>
+              <button 
+                onClick={() => setSessionsPage(Math.min(Math.ceil(exportRows.length / 5) - 1, sessionsPage + 1))} 
+                className="btn subtle"
+                style={{fontSize:'.55rem', padding:'.3rem .55rem', borderRadius:999}}
+                disabled={sessionsPage >= Math.ceil(exportRows.length / 5) - 1}
+                aria-label="Next page"
+              >
+                →
+              </button>
+            </div>
+          )}
+        </div>
+        <div style={{overflowX:'auto', minHeight: '240px', maxHeight: '240px'}}>
           <table style={{width:'100%', borderCollapse:'collapse', fontSize:'.55rem'}} className="sessions-table">
-            <thead>
+            <thead style={{position:'sticky', top:0, background:'var(--surface)', zIndex:1}}>
               <tr style={{textAlign:'left'}}>
                 <th style={{padding:'.35rem .45rem'}}>Mode</th>
                 <th style={{padding:'.35rem .45rem'}}>Started</th>
@@ -286,7 +447,7 @@ export default function InsightsPage() {
               </tr>
             </thead>
             <tbody>
-              {exportRows.slice().reverse().slice(0,range==='daily'? 50: 100).map((r,i) => {
+              {exportRows.slice().reverse().slice(sessionsPage * 5, (sessionsPage + 1) * 5).map((r,i) => {
                 const modeColor = r.mode==='focus' ? 'var(--accent)' : r.mode==='shortBreak' ? 'var(--info)' : 'var(--warning)';
                 const minutesColor = r.mode==='focus' ? 'var(--accent-accent3)' : r.mode==='shortBreak' ? 'var(--info)' : 'var(--warning)';
                 return (

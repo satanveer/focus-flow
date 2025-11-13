@@ -13,7 +13,7 @@ function format(seconds: number) {
 }
 
 export default function TimerPage() {
-  const { start, pause, resume, abort, complete, active, getRemaining, focusDurations, sessions, focusCycleCount, longBreakEvery, updateSessionProductivity } = usePomodoro() as any;
+  const { start, pause, resume, abort, complete, active, getRemaining, focusDurations, sessions, updateSessionProductivity } = usePomodoro() as any;
   const { tasks } = useAppwriteTasksContext();
   const { notes, createNote, updateNote } = useAppwriteNotes();
   // Reflection prompt state
@@ -81,15 +81,6 @@ export default function TimerPage() {
 
   const customInputRef = useRef<HTMLInputElement | null>(null);
   const announcerRef = useRef<HTMLDivElement | null>(null);
-
-  // Derived stats
-  const elapsed = totalForMode - remaining;
-  const elapsedPct = pct;
-  const nextLongBreakIn = useMemo(() => {
-    const mod = focusCycleCount % longBreakEvery; // 0 just after long break or at start
-    const remainingToLong = (mod === 0 ? longBreakEvery : longBreakEvery - mod);
-    return remainingToLong;
-  }, [focusCycleCount, longBreakEvery]);
 
   // Keyboard shortcuts
   const keyHandler = useCallback((e: KeyboardEvent) => {
@@ -160,16 +151,13 @@ export default function TimerPage() {
     }
   }, [updateNote]);
 
+  // Filter out completed tasks for timer selection
+  const activeTasks = useMemo(() => tasks.filter(t => !t.completed), [tasks]);
+
   return (
   <div className="ff-stack" style={{gap:'1.5rem', position:'relative'}}>
       <FocusGoalBar />
-      <header className="ff-stack" style={{gap:'.25rem'}}>
-        <h1 style={{fontSize:'1.3rem', fontWeight:600}}>Pomodoro</h1>
-        {selectedTaskId && (
-          <p style={{fontSize:'.75rem', color:'var(--text-muted)'}}>Focusing: <strong>{tasks.find(t=>t.id===selectedTaskId)?.title}</strong></p>
-        )}
-      </header>
-  <div className="card ff-stack" style={{alignItems:'center', textAlign:'center', gap:'1rem', padding:'2.5rem 1.5rem'}} role="region" aria-label="Pomodoro timer controls">
+  <div className="card ff-stack" style={{alignItems:'center', textAlign:'center', gap:'1.5rem', padding:'2.5rem 1.5rem'}} role="region" aria-label="Pomodoro timer controls">
         <div className="ff-row" style={{gap:'.5rem', flexWrap:'wrap', justifyContent:'center'}}>
           <select
             value={selectedTaskId || ''}
@@ -178,21 +166,23 @@ export default function TimerPage() {
             style={{minWidth:'12rem'}}
           >
             <option value="">(No task)</option>
-            {tasks.map(t => (
+            {activeTasks.map(t => (
               <option key={t.id} value={t.id}>{t.title}</option>
             ))}
           </select>
           {selectedTaskId && (
-            <button type="button" className="btn subtle" onClick={() => setSelectedTaskId(undefined)} style={{fontSize:'.6rem'}}>Clear</button>
+            <>
+              <button type="button" className="btn subtle" onClick={() => setSelectedTaskId(undefined)} style={{fontSize:'.6rem'}}>×</button>
+              <button type="button" className="btn subtle" style={{fontSize:'.6rem'}} onClick={()=> setShowNotesPanel(s=> !s)} aria-expanded={showNotesPanel} aria-controls="timer-notes-panel">
+                📝 Notes
+              </button>
+            </>
           )}
-          <button type="button" className="btn outline" style={{fontSize:'.6rem'}} onClick={()=> setShowNotesPanel(s=> !s)} aria-expanded={showNotesPanel} aria-controls="timer-notes-panel">
-            {showNotesPanel? 'Hide Notes' : 'Show Notes'}
-          </button>
         </div>
-        <div style={{display:'flex', gap:'.5rem'}} aria-label="Mode selector">
+        <div style={{display:'flex', gap:4, background:'var(--surface)', padding:4, border:'1px solid var(--border)', borderRadius:999}} aria-label="Mode selector">
           {(['focus','shortBreak','longBreak'] as const).map(m => (
-            <button key={m} type="button" disabled={!!active && mode!==m} onClick={() => start({ mode: m, taskId: selectedTaskId })} className={m===mode? 'btn primary':'btn subtle'} style={{fontSize:'.6rem'}}>
-              {m === 'focus' ? 'Focus' : m === 'shortBreak' ? 'Short Break' : 'Long Break'}
+            <button key={m} type="button" disabled={!!active && mode!==m} onClick={() => start({ mode: m, taskId: selectedTaskId })} className={m===mode? 'btn primary':'btn subtle'} style={{fontSize:'.6rem', padding:'.35rem .7rem', borderRadius:999}}>
+              {m === 'focus' ? 'Focus' : m === 'shortBreak' ? 'Short' : 'Long'}
             </button>
           ))}
         </div>
@@ -222,148 +212,82 @@ export default function TimerPage() {
           </svg>
           <div style={{position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'0 .5rem', textAlign:'center'}}>
             <div style={{fontSize:'clamp(1.7rem,5.5vw,3rem)', fontWeight:600, letterSpacing:'.05em', fontVariantNumeric:'tabular-nums', lineHeight:1}} aria-live="off">{format(remaining)}</div>
-            <div style={{fontSize:'.55rem', textTransform:'uppercase', letterSpacing:'.15em', color:'var(--text-muted)'}}>{mode === 'focus' ? 'Focus' : mode === 'shortBreak' ? 'Short Break' : 'Long Break'}</div>
+            <div style={{fontSize:'.55rem', textTransform:'uppercase', letterSpacing:'.15em', color:'var(--text-muted)', marginTop:'.25rem'}}>{mode === 'focus' ? 'Focus' : mode === 'shortBreak' ? 'Break' : 'Long Break'}</div>
           </div>
-        </div>
-  <div style={{fontSize:'.55rem', color:'var(--text-muted)', display:'flex', gap:'.7rem', flexWrap:'wrap', justifyContent:'center'}} aria-live="polite">
-          <span>Elapsed {format(elapsed)}</span>
-          <span>Remaining {format(remaining)}</span>
-          <span>{Math.round(elapsedPct)}%</span>
-          {mode==='focus' && (
-            <span
-              style={{
-                display:'inline-flex',
-                alignItems:'center',
-                gap:'.35rem',
-                background: nextLongBreakIn===1? 'var(--accent)' : 'var(--surface-2)',
-                color: nextLongBreakIn===1? 'var(--bg)' : 'var(--text-muted)',
-                padding:'.2rem .55rem',
-                borderRadius: 999,
-                boxShadow: nextLongBreakIn===1? '0 0 0 4px var(--accent-a10)' : 'none',
-                position:'relative',
-                fontWeight:500,
-                animation: nextLongBreakIn===1? 'ff-pulse 1.6s ease-in-out infinite' : 'none'
-              }}
-            >
-              Long break in {nextLongBreakIn} focus{nextLongBreakIn===1?'':'es'}
-            </span>
-          )}
-          <span style={{opacity:.65}}>Space: pause/resume • F/S/L: start mode • Esc: abort</span>
         </div>
         <div className="ff-row" style={{gap:'.75rem', flexWrap:'wrap', justifyContent:'center'}}>
           {!active && (
-            <button type="button" className="btn primary" onClick={() => start({ mode:'focus', taskId: selectedTaskId })} aria-label="Start focus session">Start</button>
+            <button type="button" className="btn primary" onClick={() => start({ mode:'focus', taskId: selectedTaskId })} aria-label="Start focus session" style={{fontSize:'.7rem', padding:'.5rem 1.2rem'}}>Start</button>
           )}
           {isRunning && (
-            <button type="button" className="btn" onClick={pause} aria-label="Pause timer">Pause</button>
+            <button type="button" className="btn" onClick={pause} aria-label="Pause timer" style={{fontSize:'.7rem', padding:'.5rem 1.2rem'}}>Pause</button>
           )}
           {isPaused && (
-            <button type="button" className="btn primary" onClick={resume} aria-label="Resume timer">Resume</button>
+            <button type="button" className="btn primary" onClick={resume} aria-label="Resume timer" style={{fontSize:'.7rem', padding:'.5rem 1.2rem'}}>Resume</button>
           )}
           {!!active && (
-            <button
-              type="button"
-              className="btn subtle"
-              onClick={() => {
-                complete();
-                setRemaining(0); // immediate visual reset per requirement
-              }}
-              aria-label="Complete session early and credit time"
-            >Complete</button>
-          )}
-          {!!active && (
-            <button type="button" className="btn danger" onClick={abort} aria-label="Abort session without saving">Abort</button>
+            <>
+              <button
+                type="button"
+                className="btn subtle"
+                onClick={() => {
+                  complete();
+                  setRemaining(0);
+                }}
+                aria-label="Complete session early"
+                style={{fontSize:'.65rem'}}
+              >Complete</button>
+              <button type="button" className="btn danger" onClick={abort} aria-label="Abort session" style={{fontSize:'.65rem'}}>Abort</button>
+            </>
           )}
         </div>
-        {/* Configuration controls moved to Settings page */}
-        <div className="card" style={{width:'100%', maxWidth:620, padding:'1.1rem 1.2rem 1.35rem', background:'var(--surface-1)', border:'1px solid var(--border)', boxShadow:'0 2px 4px -2px rgba(0,0,0,.4), 0 4px 12px -2px rgba(0,0,0,.25)'}}>
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'.35rem', marginBottom:'.85rem', textAlign:'center'}}>
-            <h3 style={{margin:0, fontSize:'.7rem', letterSpacing:'.12em', textTransform:'uppercase', color:'var(--text-muted)'}}>Custom Focus Session</h3>
-            <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>
-              {(() => { const raw=Number(customInputRef.current?.value||0); if(!raw) return 'Pick a duration'; const end=new Date(Date.now()+raw*60000); return 'Ends ~ '+end.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); })()}
-            </span>
-          </div>
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'.9rem'}}>
-            <div style={{display:'flex', flexDirection:'column', gap:'.5rem', alignItems:'center', width:'100%'}}>
-              <div style={{display:'flex', alignItems:'center', gap:'.5rem', justifyContent:'center', flexWrap:'wrap'}}>
-                <select
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val && customInputRef.current) {
-                      customInputRef.current.value = val;
-                      if (val !== 'custom') {
-                        start({mode:'focus', taskId:selectedTaskId, durationSec: Number(val)*60});
-                      }
-                    }
-                  }}
-                  disabled={!!active}
-                  style={{
-                    fontSize:'.7rem', 
-                    padding:'.5rem .8rem', 
-                    border:'1px solid var(--border)', 
-                    borderRadius:'var(--radius-md)', 
-                    background:'var(--surface-2)',
-                    minWidth:'8rem'
-                  }}
-                  defaultValue=""
-                >
-                  <option value="">Quick Start</option>
-                  <option value="15">15 minutes</option>
-                  <option value="25">25 minutes</option>
-                  <option value="30">30 minutes</option>
-                  <option value="45">45 minutes</option>
-                  <option value="60">1 hour</option>
-                  <option value="90">1.5 hours</option>
-                  <option value="120">2 hours</option>
-                  <option value="custom">Custom...</option>
-                </select>
-                <span style={{fontSize:'.6rem', color:'var(--text-muted)'}}>or</span>
-                <input
-                  ref={customInputRef}
-                  placeholder="Minutes"
-                  type="number"
-                  min={1}
-                  className="focus-mins-input"
-                  style={{width:'7rem', textAlign:'center', fontSize:'.7rem', padding:'.5rem .8rem', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'var(--surface-2)', WebkitAppearance:'none'}}
-                  disabled={!!active && false}
-                  onKeyDown={e=>{ if(e.key==='Enter'){ const val=Number((e.target as HTMLInputElement).value); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); } }}
-                />
-                <button type="button" className="btn primary" style={{fontSize:'.7rem'}} disabled={!!active} onClick={()=>{ const val=Number(customInputRef.current?.value||0); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); }}>Start</button>
-              </div>
-              <div style={{fontSize:'.55rem', color:'var(--text-muted)', textAlign:'center'}}>Choose a preset or enter custom minutes</div>
-            </div>
+        <div className="card" style={{width:'100%', maxWidth:520, padding:'.9rem 1rem', background:'var(--surface-1)', border:'1px solid var(--border)'}}>
+          <div style={{display:'flex', alignItems:'center', gap:'.5rem', justifyContent:'center', flexWrap:'wrap'}}>
+            <select
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val && customInputRef.current) {
+                  customInputRef.current.value = val;
+                  if (val !== 'custom') {
+                    start({mode:'focus', taskId:selectedTaskId, durationSec: Number(val)*60});
+                  }
+                }
+              }}
+              disabled={!!active}
+              style={{
+                fontSize:'.65rem', 
+                padding:'.45rem .7rem', 
+                border:'1px solid var(--border)', 
+                borderRadius:'var(--radius-md)', 
+                background:'var(--surface-2)',
+                minWidth:'7rem'
+              }}
+              defaultValue=""
+            >
+              <option value="">Quick Start</option>
+              <option value="15">15 min</option>
+              <option value="25">25 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+            </select>
+            <span style={{fontSize:'.6rem', color:'var(--text-muted)'}}>or</span>
+            <input
+              ref={customInputRef}
+              placeholder="MINUTES"
+              type="number"
+              min={1}
+              className="focus-mins-input"
+              style={{width:'6rem', textAlign:'center', fontSize:'.65rem', padding:'.45rem .7rem', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', background:'var(--surface-2)', WebkitAppearance:'none'}}
+              disabled={!!active}
+              onKeyDown={e=>{ if(e.key==='Enter'){ const val=Number((e.target as HTMLInputElement).value); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); } }}
+            />
+            <button type="button" className="btn primary" style={{fontSize:'.65rem', padding:'.45rem .8rem'}} disabled={!!active} onClick={()=>{ const val=Number(customInputRef.current?.value||0); if(val>0) start({mode:'focus', taskId:selectedTaskId, durationSec: val*60}); }}>Start</button>
           </div>
         </div>
       </div>
-      <section className="card ff-stack" style={{padding:'1rem 1rem 1.25rem', gap:'.75rem'}}>
-        <header style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-          <h2 style={{fontSize:'.8rem', fontWeight:600}}>Recent Sessions</h2>
-          <span style={{fontSize:'.55rem', color:'var(--text-muted)'}}>
-            Total Focus Today: {Math.round(sessions
-              .filter((s: any)=> s.mode==='focus' && s.endedAt && new Date(s.startedAt).toDateString()=== new Date().toDateString())
-              .reduce((a: number,b: any)=> a + b.durationSec,0)/60)}m
-          </span>
-        </header>
-        <ul className="ff-stack" style={{listStyle:'none', margin:0, padding:0, gap:0, maxHeight:'12rem', overflowY:'auto', border:'1px solid var(--border)', borderRadius:8}}>
-          {sessions.slice().reverse().slice(0,25).map((s: any, i: number) => {
-            const task = tasks.find(t=> t.id===s.taskId);
-            const durMin = Math.round(s.durationSec/60);
-            const mode = s.mode;
-            const label = mode==='focus' ? 'FOCUS' : mode==='shortBreak' ? 'SHORT' : 'LONG';
-            const modeColor = mode==='focus' ? 'var(--accent)' : mode==='shortBreak' ? 'var(--info)' : 'var(--warning)';
-            const minutesColor = mode==='focus' ? 'var(--accent-accent3)' : mode==='shortBreak' ? 'var(--info)' : 'var(--warning)';
-            return (
-              <li key={s.id} style={{display:'flex', alignItems:'center', gap:'.6rem', fontSize:'.55rem', padding:'.35rem .55rem', background: i % 2 ? 'var(--surface)' : 'var(--surface-elev)'}}>
-                <span style={{padding:'.2rem .55rem', borderRadius:999, background:modeColor, color:'var(--accent-foreground)', fontWeight:600, letterSpacing:'.05em'}}>{label}</span>
-                <span style={{color: minutesColor, fontWeight:600}}>{durMin}m</span>
-                {task && <span style={{color:'var(--text-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'10rem'}}>• {task.title}</span>}
-                <span style={{marginLeft:'auto', color:'var(--text-muted)'}}>{new Date(s.startedAt).toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'})}</span>
-              </li>
-            );
-          })}
-          {sessions.length===0 && <li style={{fontSize:'.55rem', color:'var(--text-muted)', padding:'.6rem', textAlign:'center'}}>No sessions yet.</li>}
-        </ul>
-      </section>
       {pendingReflection && (
         <div style={{position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center'}} role="dialog" aria-modal="true" aria-label="Session reflection">
           <div onMouseDown={e=> { if(e.target===e.currentTarget) setPendingReflection(null); }} style={{position:'absolute', inset:0, backdropFilter:'blur(2px)', background:'rgba(0,0,0,.35)'}} />

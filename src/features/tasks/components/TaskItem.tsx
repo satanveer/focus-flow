@@ -149,7 +149,7 @@ export const TaskItem: React.FC<Props> = ({ task }) => {
             }
           }
           setShowNote(s=> !s);
-        }}>{existingLinked? 'Note':'Add Note'}</button>
+        }}>Add Note</button>
         <button className="btn outline text-[0.6rem] sm:text-[0.7rem] px-2.5 py-1.5 sm:px-4 sm:py-2.5" style={{minWidth:'auto', color:'var(--danger)', borderColor:'var(--danger)'}} onClick={() => removeTask(task.id)} aria-label="Delete task">
           <Trash2 className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
         </button>

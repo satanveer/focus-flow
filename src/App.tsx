@@ -12,6 +12,7 @@ import Layout from "./layouts/Layout";
 import { PomodoroProvider } from './features/pomodoro/PomodoroContext';
 import { AppwritePomodoroProvider } from './features/pomodoro/AppwritePomodoroContext';
 import TabTitleUpdater from './components/TabTitleUpdater';
+import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 
 import { AppwriteNotesProvider } from './features/notes/AppwriteNotesContext';
 import { AuthProvider, ProtectedRoute } from './contexts/AuthContext';
@@ -20,41 +21,43 @@ import { CalendarProvider } from './contexts/CalendarContext';
 
 function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        {/* OAuth callback routes - outside of ProtectedRoute */}
-        {/* Google OAuth callback is now handled in AuthContext */}
-        <Route path="/auth/google-calendar" element={<GoogleCalendarCallback />} />
-        
-        {/* Protected routes */}
-        <Route path="/*" element={
-          <ProtectedRoute>
-            <AppwriteTasksProvider>
-              <CalendarProvider>
-                <AppwritePomodoroProvider>
-                  <PomodoroProvider>
-                    <TabTitleUpdater />
-                    <AppwriteNotesProvider>
-                      <Routes>
-                        <Route element={<Layout/>}>
-                          <Route index element={<DashboardPage />} />
-                          <Route path="tasks" element={<AppwriteTasksPage />} />
-                          <Route path="calendar" element={<CalendarPage />} />
-                          <Route path="timer" element={<TimerPage />} />
-                          <Route path="notes" element={<NotesPage />} />
-                          <Route path="insights" element={<InsightsPage />} />
-                          <Route path="settings" element={<SettingsPage />} />
-                        </Route>
-                      </Routes>
-                    </AppwriteNotesProvider>
-                  </PomodoroProvider>
-                </AppwritePomodoroProvider>
-              </CalendarProvider>
-            </AppwriteTasksProvider>
-          </ProtectedRoute>
-        } />
-      </Routes>
-    </AuthProvider>
+    <GlobalErrorBoundary>
+      <AuthProvider>
+        <Routes>
+          {/* OAuth callback routes - outside of ProtectedRoute */}
+          {/* Google OAuth callback is now handled in AuthContext */}
+          <Route path="/auth/google-calendar" element={<GoogleCalendarCallback />} />
+          
+          {/* Protected routes */}
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <AppwriteTasksProvider>
+                <CalendarProvider>
+                  <AppwritePomodoroProvider>
+                    <PomodoroProvider>
+                      <TabTitleUpdater />
+                      <AppwriteNotesProvider>
+                        <Routes>
+                          <Route element={<Layout/>}>
+                            <Route index element={<DashboardPage />} />
+                            <Route path="tasks" element={<AppwriteTasksPage />} />
+                            <Route path="calendar" element={<CalendarPage />} />
+                            <Route path="timer" element={<TimerPage />} />
+                            <Route path="notes" element={<NotesPage />} />
+                            <Route path="insights" element={<InsightsPage />} />
+                            <Route path="settings" element={<SettingsPage />} />
+                          </Route>
+                        </Routes>
+                      </AppwriteNotesProvider>
+                    </PomodoroProvider>
+                  </AppwritePomodoroProvider>
+                </CalendarProvider>
+              </AppwriteTasksProvider>
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </AuthProvider>
+    </GlobalErrorBoundary>
   );
 }
 

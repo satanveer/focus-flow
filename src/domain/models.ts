@@ -100,6 +100,12 @@ export interface CalendarEvent {
   reminders?: number[]; // minutes before event
   tags: string[];
   
+  // Google Calendar sync fields
+  googleCalendarId?: string;    // ID of the event in Google Calendar
+  googleCalendarEtag?: string;  // Etag for change tracking
+  source?: 'local' | 'google' | 'synced';  // Where the event originated
+  lastSyncedAt?: string;        // When this event was last synced
+  
   // Time tracking
   createdAt: string;
   updatedAt: string;

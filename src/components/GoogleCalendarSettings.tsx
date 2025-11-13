@@ -114,10 +114,10 @@ export const GoogleCalendarSettings: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              <p className="mb-3">🎯 Focus sessions will be automatically logged to your Google Calendar when completed.</p>
-              <p className="text-xs">Each session includes the task name, duration, and productivity details.</p>
-            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              ✓ Google Calendar is connected and syncing automatically.
+            </p>
+            
             <button
               onClick={handleDisconnect}
               className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"

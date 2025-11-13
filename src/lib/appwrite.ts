@@ -140,6 +140,12 @@ export interface AppwriteCalendarEvent {
   reminders: string;    // JSON string of number[]
   tags: string;         // JSON string of string[]
   
+  // Google Calendar sync fields
+  googleCalendarId?: string;  // ID of the event in Google Calendar
+  googleCalendarEtag?: string;  // Etag for change tracking
+  source?: 'local' | 'google' | 'synced';  // Where the event originated (defaults to 'local')
+  lastSyncedAt?: string;  // When this event was last synced with Google
+  
   userId: string;
   $createdAt: string;
   $updatedAt: string;

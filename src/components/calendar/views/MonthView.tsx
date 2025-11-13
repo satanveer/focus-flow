@@ -93,7 +93,7 @@ const MonthView: React.FC = () => {
     <>
       <div className="flex-1 flex flex-col">
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+      <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         {weekdays.map((day, index) => (
           <div key={day} className="p-2 sm:p-4 text-center">
             {/* Show single letter on mobile, full text on tablet+ */}
@@ -136,7 +136,7 @@ const MonthView: React.FC = () => {
               <div
                 key={index}
                 className={`border-r border-b border-gray-200 dark:border-gray-700 p-1 sm:p-2 min-h-16 sm:min-h-24 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                  !isCurrentMonth ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-800'
+                  !isCurrentMonth ? 'bg-gray-100 dark:bg-gray-800' : 'bg-white dark:bg-gray-800'
                 }`}
                 onClick={() => {
                   const newEventTime = new Date(day);
