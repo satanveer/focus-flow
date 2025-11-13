@@ -58,12 +58,42 @@ const MonthView: React.FC = () => {
 
   const getEventColorClasses = (eventType: string) => {
     switch (eventType) {
-      case 'focus': return 'bg-blue-500';
-      case 'break': return 'bg-green-500';
-      case 'task': return 'bg-purple-500';
-      case 'meeting': return 'bg-red-500';
-      case 'personal': return 'bg-orange-500';
-      default: return 'bg-gray-500';
+      case 'focus': 
+        return {
+          bg: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+          text: '#ffffff',
+          border: '#3b82f6'
+        };
+      case 'break': 
+        return {
+          bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          text: '#ffffff',
+          border: '#10b981'
+        };
+      case 'task': 
+        return {
+          bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          text: '#ffffff',
+          border: '#667eea'
+        };
+      case 'meeting': 
+        return {
+          bg: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          text: '#ffffff',
+          border: '#ef4444'
+        };
+      case 'personal': 
+        return {
+          bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          text: '#ffffff',
+          border: '#f59e0b'
+        };
+      default: 
+        return {
+          bg: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+          text: '#ffffff',
+          border: '#6b7280'
+        };
     }
   };
 
@@ -93,12 +123,16 @@ const MonthView: React.FC = () => {
     <>
       <div className="flex-1 flex flex-col">
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="grid grid-cols-7" style={{ borderBottom: '1px solid var(--border)' }}>
         {weekdays.map((day, index) => (
-          <div key={day} className="p-2 sm:p-4 text-center">
+          <div key={day} className="p-3 sm:p-4 text-center" style={{ borderRight: index < 6 ? '1px solid var(--border)' : 'none' }}>
             {/* Show single letter on mobile, full text on tablet+ */}
-            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 sm:hidden">{weekdaysShort[index]}</span>
-            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">{day}</span>
+            <span className="text-xs font-semibold uppercase tracking-wide sm:hidden" style={{ color: 'var(--text-muted)' }}>
+              {weekdaysShort[index]}
+            </span>
+            <span className="text-sm font-semibold uppercase tracking-wide hidden sm:inline" style={{ color: 'var(--text-muted)' }}>
+              {day}
+            </span>
           </div>
         ))}
       </div>
@@ -106,19 +140,25 @@ const MonthView: React.FC = () => {
       {/* Calendar grid or empty state */}
       {state.events.length === 0 ? (
         <div className="flex-1 flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <div className="text-gray-400 dark:text-gray-500 mb-4">
-              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="text-center p-8">
+            <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full" 
+                 style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--accent)' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No events this month</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text)' }}>No events this month</h3>
+            <p className="mb-6 max-w-sm mx-auto" style={{ color: 'var(--text-muted)' }}>
               Start a focus session or connect Google Calendar to see your events here.
             </p>
             <button
               onClick={() => showEventModal()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="px-6 py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
+              style={{ 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+              }}
             >
               Create Event
             </button>
@@ -135,79 +175,121 @@ const MonthView: React.FC = () => {
             return (
               <div
                 key={index}
-                className={`border-r border-b border-gray-200 dark:border-gray-700 p-1 sm:p-2 min-h-16 sm:min-h-24 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                  !isCurrentMonth ? 'bg-gray-100 dark:bg-gray-800' : 'bg-white dark:bg-gray-800'
+                className={`p-2 sm:p-3 min-h-24 sm:min-h-32 cursor-pointer transition-all duration-200 ${
+                  !isCurrentMonth ? 'opacity-40' : ''
                 }`}
+                style={{
+                  borderRight: (index % 7) < 6 ? '1px solid var(--border)' : 'none',
+                  borderBottom: '1px solid var(--border)',
+                  background: !isCurrentMonth 
+                    ? 'color-mix(in srgb, var(--text-muted) 3%, transparent)' 
+                    : 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  if (isCurrentMonth) {
+                    e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 5%, transparent)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = !isCurrentMonth 
+                    ? 'color-mix(in srgb, var(--text-muted) 3%, transparent)' 
+                    : 'transparent';
+                }}
                 onClick={() => {
                   const newEventTime = new Date(day);
-                  newEventTime.setHours(9, 0, 0, 0); // Default to 9 AM
+                  newEventTime.setHours(9, 0, 0, 0);
                 }}
               >
                 {/* Day number */}
-                <div className="flex justify-between items-start mb-0.5 sm:mb-1">
-                  <span className={`text-xs sm:text-sm ${
+                <div className="flex justify-between items-start mb-1 sm:mb-2">
+                  <span className={`text-sm sm:text-base font-semibold transition-all ${
                     isToday 
-                      ? 'bg-blue-600 text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-medium'
-                      : isCurrentMonth
-                        ? 'text-gray-900 dark:text-gray-100 font-medium'
-                        : 'text-gray-400 dark:text-gray-600'
-                  }`}>
+                      ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center'
+                      : ''
+                  }`}
+                  style={isToday ? {
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    boxShadow: '0 2px 8px rgba(102, 126, 234, 0.4)'
+                  } : {
+                    color: isCurrentMonth ? 'var(--text)' : 'var(--text-muted)'
+                  }}>
                     {day.getDate()}
                   </span>
                 </div>
 
                 {/* Events */}
-                <div className="space-y-0.5 sm:space-y-1">
-                  {/* On mobile, show only dots for events. On tablet+, show full event bars */}
+                <div className="space-y-1 sm:space-y-1.5">
                   {events.length > 0 && (
                     <>
                       {/* Mobile: Show dots */}
-                      <div className="flex gap-1 sm:hidden flex-wrap">
-                        {events.slice(0, 3).map((event) => (
-                          <div
-                            key={event.id}
-                            className={`w-1.5 h-1.5 rounded-full ${getEventColorClasses(event.type)}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              showEventModal(event);
-                            }}
-                          />
-                        ))}
-                        {events.length > 3 && (
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                            +{events.length - 3}
+                      <div className="flex gap-1.5 sm:hidden flex-wrap">
+                        {events.slice(0, 4).map((event) => {
+                          const eventColors = getEventColorClasses(event.type);
+                          return (
+                            <div
+                              key={event.id}
+                              className="w-2 h-2 rounded-full transition-transform hover:scale-125 cursor-pointer"
+                              style={{ background: eventColors.bg }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                showEventModal(event);
+                              }}
+                            />
+                          );
+                        })}
+                        {events.length > 4 && (
+                          <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                            +{events.length - 4}
                           </span>
                         )}
                       </div>
                       
                       {/* Tablet+: Show event bars */}
-                      <div className="hidden sm:block space-y-1">
-                        {events.slice(0, 2).map((event) => (
-                          <div
-                            key={event.id}
-                            className={`text-xs p-1 rounded truncate cursor-pointer text-white flex items-center justify-center ${getEventColorClasses(event.type)}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              showEventModal(event);
-                            }}
-                          >
-                            <span className="text-center font-medium">{event.title}</span>
-                          </div>
-                        ))}
-                        {events.length > 2 && (
+                      <div className="hidden sm:block space-y-1.5">
+                        {events.slice(0, 3).map((event) => {
+                          const eventColors = getEventColorClasses(event.type);
+                          return (
+                            <div
+                              key={event.id}
+                              className="text-xs px-2 py-1.5 rounded-md truncate cursor-pointer font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
+                              style={{
+                                background: eventColors.bg,
+                                color: eventColors.text,
+                                border: `1px solid ${eventColors.border}`
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                showEventModal(event);
+                              }}
+                            >
+                              <span className="truncate block">{event.title}</span>
+                            </div>
+                          );
+                        })}
+                        {events.length > 3 && (
                           <div 
-                            className="text-xs text-gray-500 dark:text-gray-400 text-center font-medium cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                            onMouseEnter={(e) => handleMoreEventsHover(events.slice(2), e)}
-                            onMouseLeave={handleMoreEventsLeave}
+                            className="text-xs text-center font-semibold cursor-pointer transition-all duration-200 px-2 py-1 rounded-md"
+                            style={{
+                              color: 'var(--accent)',
+                              background: 'color-mix(in srgb, var(--accent) 10%, transparent)'
+                            }}
+                            onMouseEnter={(e) => {
+                              handleMoreEventsHover(events.slice(3), e);
+                              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 20%, transparent)';
+                            }}
+                            onMouseLeave={(e) => {
+                              handleMoreEventsLeave();
+                              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)';
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Show first remaining event when clicking "+X more"
-                              if (events[2]) {
-                                showEventModal(events[2]);
+                              if (events[3]) {
+                                showEventModal(events[3]);
                               }
                             }}
                           >
-                            +{events.length - 2} more
+                            +{events.length - 3} more
                           </div>
                         )}
                       </div>

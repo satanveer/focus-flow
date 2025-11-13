@@ -22,23 +22,47 @@ const AgendaView: React.FC = () => {
 
   const getEventColorClasses = (eventType: string) => {
     switch (eventType) {
-      case 'focus': return 'border-blue-500 bg-blue-50 dark:bg-blue-900/20';
-      case 'break': return 'border-green-500 bg-green-50 dark:bg-green-900/20';
-      case 'task': return 'border-purple-500 bg-purple-50 dark:bg-purple-900/20';
-      case 'meeting': return 'border-red-500 bg-red-50 dark:bg-red-900/20';
-      case 'personal': return 'border-orange-500 bg-orange-50 dark:bg-orange-900/20';
-      default: return 'border-gray-500 bg-gray-50 dark:bg-gray-800';
+      case 'focus': 
+        return {
+          border: '#3b82f6',
+          bg: 'color-mix(in srgb, #3b82f6 8%, transparent)'
+        };
+      case 'break': 
+        return {
+          border: '#10b981',
+          bg: 'color-mix(in srgb, #10b981 8%, transparent)'
+        };
+      case 'task': 
+        return {
+          border: '#667eea',
+          bg: 'color-mix(in srgb, #667eea 8%, transparent)'
+        };
+      case 'meeting': 
+        return {
+          border: '#ef4444',
+          bg: 'color-mix(in srgb, #ef4444 8%, transparent)'
+        };
+      case 'personal': 
+        return {
+          border: '#f59e0b',
+          bg: 'color-mix(in srgb, #f59e0b 8%, transparent)'
+        };
+      default: 
+        return {
+          border: '#6b7280',
+          bg: 'var(--bg-alt)'
+        };
     }
   };
 
   const getEventTypeColor = (eventType: string) => {
     switch (eventType) {
-      case 'focus': return 'text-blue-700 dark:text-blue-300';
-      case 'break': return 'text-green-700 dark:text-green-300';
-      case 'task': return 'text-purple-700 dark:text-purple-300';
-      case 'meeting': return 'text-red-700 dark:text-red-300';
-      case 'personal': return 'text-orange-700 dark:text-orange-300';
-      default: return 'text-gray-700 dark:text-gray-300';
+      case 'focus': return '#3b82f6';
+      case 'break': return '#10b981';
+      case 'task': return '#667eea';
+      case 'meeting': return '#ef4444';
+      case 'personal': return '#f59e0b';
+      default: return '#6b7280';
     }
   };
 
@@ -77,59 +101,114 @@ const AgendaView: React.FC = () => {
   return (
     <div className="flex-1 p-6">
       <div className="max-w-4xl">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">Upcoming Events</h3>
+        <div className="mb-6 flex items-center justify-between">
+          <h3 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Upcoming Events</h3>
+          <span className="text-sm font-medium px-3 py-1 rounded-full" 
+                style={{ 
+                  background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+                  color: 'var(--accent)'
+                }}>
+            Next 30 Days
+          </span>
+        </div>
 
         {upcomingEvents.length > 0 ? (
-          <div className="space-y-4">
-            {upcomingEvents.map((event) => (
-              <div
-                key={event.id}
-                className={`border-l-4 p-4 rounded-r-lg cursor-pointer hover:shadow-md transition-shadow ${getEventColorClasses(event.type)}`}
-                onClick={() => showEventModal(event)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">{event.title}</h4>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEventTypeColor(event.type)}`}>
-                        {event.type}
-                      </span>
-                    </div>
-                    
-                    {event.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{event.description}</p>
-                    )}
-                    
-                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span>{formatEventDate(event.startTime)}</span>
-                      <span>{formatEventTime(event.startTime, event.endTime)}</span>
-                      {event.location && (
-                        <span>📍 {event.location}</span>
+          <div className="space-y-3">
+            {upcomingEvents.map((event) => {
+              const eventColors = getEventColorClasses(event.type);
+              const typeColor = getEventTypeColor(event.type);
+              return (
+                <div
+                  key={event.id}
+                  className="rounded-lg cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg overflow-hidden"
+                  style={{
+                    borderLeft: `4px solid ${eventColors.border}`,
+                    background: eventColors.bg,
+                    border: `1px solid ${eventColors.border}`,
+                    borderLeftWidth: '4px'
+                  }}
+                  onClick={() => showEventModal(event)}
+                >
+                  <div className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                          <h4 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>{event.title}</h4>
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+                                style={{ 
+                                  background: typeColor,
+                                  color: 'white'
+                                }}>
+                            {event.type}
+                          </span>
+                        </div>
+                        
+                        {event.description && (
+                          <p className="text-sm mb-3 line-clamp-2" style={{ color: 'var(--text-muted)' }}>{event.description}</p>
+                        )}
+                        
+                        <div className="flex items-center gap-4 text-sm flex-wrap" style={{ color: 'var(--text-muted)' }}>
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>{formatEventDate(event.startTime)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>{formatEventTime(event.startTime, event.endTime)}</span>
+                          </div>
+                          {event.location && (
+                            <div className="flex items-center gap-1.5 font-medium">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <span>{event.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {event.status && (
+                        <div className="ml-4">
+                          <span className="text-xs font-semibold px-2 py-1 rounded-md capitalize"
+                                style={{
+                                  background: 'var(--bg-alt)',
+                                  color: 'var(--text-muted)'
+                                }}>
+                            {event.status}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
-                  
-                  <div className="text-xs text-gray-400 dark:text-gray-500">
-                    {event.status}
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <div className="text-gray-400 dark:text-gray-500 mb-4">
-              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="text-center py-16">
+            <div className="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-full" 
+                 style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--accent)' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No upcoming events</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--text)' }}>No upcoming events</h3>
+            <p className="mb-8 text-base max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
               Start a focus session or connect Google Calendar to see your events here.
             </p>
             <button
               onClick={() => showEventModal()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="px-6 py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
+              style={{ 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+              }}
             >
               Create Event
             </button>
